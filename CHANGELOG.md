@@ -4,6 +4,26 @@
 
 No unreleased changes yet.
 
+## v0.2.3 - 2026-06-18
+
+### Added
+
+- Trusted EVM ERC-20 receipt verification helper in `@redeemloop/adapters`.
+- `POST /v1/settlement/evm/recheck/:intentId` to fetch/verify an ERC-20 transfer receipt and create a trusted proof.
+- `broadcastTxid` tracking on PaymentIntent after `POST /v1/payment-intents/:intentId/broadcasted`.
+- SDK `recheckEvmSettlement` method and response types.
+- Configurable `EVM_MIN_CONFIRMATIONS` confirmation policy.
+- Tests for ERC-20 receipt verification and trusted API settlement recheck.
+
+### 中文说明
+
+- 在 `@redeemloop/adapters` 中新增可信 EVM ERC-20 receipt 校验 helper。
+- 新增 `POST /v1/settlement/evm/recheck/:intentId`，用于读取/校验 ERC-20 transfer receipt 并创建 trusted proof。
+- `POST /v1/payment-intents/:intentId/broadcasted` 后会在 PaymentIntent 上记录 `broadcastTxid`。
+- SDK 新增 `recheckEvmSettlement` 方法和响应类型。
+- 新增可配置确认数策略 `EVM_MIN_CONFIRMATIONS`。
+- 新增 ERC-20 receipt 校验和可信 API settlement recheck 测试。
+
 ## v0.2.2 - 2026-06-18
 
 ### Added

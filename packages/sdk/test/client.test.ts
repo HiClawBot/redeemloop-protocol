@@ -62,6 +62,10 @@ describe("RedeemLoopClient", () => {
       from: "0x0000000000000000000000000000000000000123",
       status: "confirmed",
     });
+    await client.recheckEvmSettlement("pi_test", {
+      txid: "0x1234",
+      minConfirmations: 2,
+    });
     await client.createWebhookEndpoint({
       merchantId: "merchant_cafe",
       url: "https://merchant.example/redeemloop",
@@ -76,6 +80,7 @@ describe("RedeemLoopClient", () => {
       "https://api.example.test/v1/payment-intents/pi_test/transfer-requested",
       "https://api.example.test/v1/payment-intents/pi_test/broadcasted",
       "https://api.example.test/v1/settlement/proofs",
+      "https://api.example.test/v1/settlement/evm/recheck/pi_test",
       "https://api.example.test/v1/webhook-endpoints",
     ]);
     expect(calls[0]?.init?.headers).toBeInstanceOf(Headers);

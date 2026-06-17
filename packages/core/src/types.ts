@@ -108,6 +108,7 @@ export interface RedeemLoopPaymentIntent {
   acceptedAssets: VoucherAssetDescriptor[];
   selectedAsset?: VoucherAssetDescriptor;
   payerAddress?: string;
+  broadcastTxid?: string;
   merchantVault: string;
   settlementPolicy: SettlementPolicy;
   status: PaymentIntentStatus;

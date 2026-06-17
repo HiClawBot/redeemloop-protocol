@@ -191,6 +191,17 @@ export interface SettlementRecheckResponse {
   proofs: VoucherPaymentProof[];
 }
 
+export interface EvmSettlementRecheckInput {
+  txid?: string;
+  from?: string;
+  minConfirmations?: number;
+  proofId?: string;
+}
+
+export interface EvmSettlementRecheckResponse extends SettlementProofResponse {
+  trusted: true;
+}
+
 export interface WebhookEndpoint {
   id: string;
   merchantId: string;

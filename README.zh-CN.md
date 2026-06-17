@@ -33,6 +33,7 @@ PaymentIntent
 - EVM ERC-20 持券检测所需的 balanceOf call request。
 - Merchant Embed Alpha：SDK 方法、React Pay Button、script-tag widget 和 demo store 页面。
 - 文件持久化 sandbox 和商户级 API key 校验，适用于本地和 pilot 环境。
+- 基于 transaction receipt 的可信 EVM ERC-20 settlement recheck。
 - 商户收券地址 / vault 确认模型。
 - Settlement proof 提交与幂等。
 - WooCommerce、Shopify、自定义 mark-as-paid 适配表面。
@@ -106,6 +107,16 @@ pnpm api:dev
 
 `REDEEMLOOP_STORAGE_FILE` 会把 merchant、vault、entitlement、binding、PaymentIntent、settlement proof、幂等 key、webhook endpoint 和 commerce payment record 持久化到本地文件，API 重启后仍可恢复。它是 sandbox persistence adapter，不是生产数据库替代品。
 `REDEEMLOOP_API_KEYS` 支持逗号分隔的 `merchantId:apiKey`，也支持 JSON object 字符串。配置后，商户级 `/v1` API 调用必须携带 `Authorization: Bearer <apiKey>`。
+
+可信 EVM settlement recheck 可以这样启用：
+
+```bash
+RPC_URL=https://base-mainnet.example \
+EVM_MIN_CONFIRMATIONS=2 \
+pnpm api:dev
+```
+
+钱包广播转账后，先调用 `POST /v1/payment-intents/:intentId/broadcasted` 提交 tx hash，再调用 `POST /v1/settlement/evm/recheck/:intentId`。API 会读取交易 receipt，校验 ERC-20 `Transfer(payer, merchantVault, requiredAmount)` log，然后才创建 trusted settlement proof。
 
 运行本地 Phase 0 控制台：
 
@@ -187,6 +198,7 @@ POST /v1/payment-intents/:intentId/check-balance
 POST /v1/payment-intents/:intentId/transfer-requested
 POST /v1/payment-intents/:intentId/broadcasted
 POST /v1/settlement/proofs
+POST /v1/settlement/evm/recheck/:intentId
 POST /v1/webhook-endpoints
 POST /v1/webhook-endpoints/:id/test
 ```

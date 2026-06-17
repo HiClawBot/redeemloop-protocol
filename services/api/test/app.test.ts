@@ -2,8 +2,9 @@ import { describe, expect, it } from "vitest";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { getAddress } from "viem";
+import { encodeAbiParameters, encodeEventTopics, getAddress, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
+import { erc20TransferEvent } from "@redeemloop/adapters";
 
 import { createApp } from "../src/app.js";
 import { hmacSha256Base64 } from "../src/commerce.js";
@@ -525,6 +526,158 @@ describe("RedeemLoop API relayer prototype", () => {
     expect(readResponse.statusCode).toBe(200);
     expect(readResponse.json()).toMatchObject({
       merchantId: "merchant_cafe",
+    });
+
+    await app.close();
+  });
+
+  it("rechecks EVM ERC-20 settlement from a trusted receipt provider", async () => {
+    const txid = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;
+    const app = await createApp({
+      chainId: 31337,
+      dryRun: true,
+      evmMinConfirmations: 2,
+      evmReceiptProvider: async () => ({
+        currentBlockNumber: 15n,
+        receipt: {
+          transactionHash: txid,
+          blockNumber: 14n,
+          blockHash: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          status: "success",
+          logs: [
+            {
+              address: token,
+              topics: encodeEventTopics({
+                abi: [erc20TransferEvent],
+                eventName: "Transfer",
+                args: {
+                  from: user.address,
+                  to: operator,
+                },
+              }) as Hex[],
+              data: encodeAbiParameters([{ type: "uint256" }], [1n]),
+              logIndex: 1,
+            },
+          ],
+        },
+      }),
+      woocommerceStoreUrl: "https://merchant.example",
+    });
+
+    await app.inject({
+      method: "POST",
+      url: "/v1/merchants",
+      payload: {
+        merchantId: "merchant_evm",
+        name: "Trusted EVM Merchant",
+      },
+    });
+    await app.inject({
+      method: "POST",
+      url: "/v1/merchant-vaults",
+      payload: {
+        vaultId: "vault_evm",
+        merchantId: "merchant_evm",
+        chainNamespace: "eip155",
+        chainId: 31337,
+        address: operator,
+      },
+    });
+    await app.inject({
+      method: "POST",
+      url: "/v1/entitlements",
+      payload: {
+        entitlementId: "ent_evm",
+        merchantId: "merchant_evm",
+        name: "Trusted pickup",
+        quantity: 1,
+        termsHash: "evm-terms",
+      },
+    });
+    await app.inject({
+      method: "POST",
+      url: "/v1/bindings",
+      payload: {
+        bindingId: "bind_evm",
+        merchantId: "merchant_evm",
+        entitlementId: "ent_evm",
+        acceptedAssets: [
+          {
+            chainNamespace: "eip155",
+            chainId: 31337,
+            assetType: "erc20",
+            assetId: `eip155:31337/erc20:${token}`,
+            contract: token,
+            requiredAmount: "1",
+            termsHash: "evm-terms",
+          },
+        ],
+        merchantVaults: {
+          "eip155:31337": operator,
+        },
+        settlementPolicy: "collect",
+        commerceTargets: [
+          {
+            platform: "woocommerce",
+            storeId: "woo-store",
+            sku: "trusted-cup",
+          },
+        ],
+        status: "active",
+        termsHash: "evm-terms",
+      },
+    });
+    const intentResponse = await app.inject({
+      method: "POST",
+      url: "/v1/payment-intents",
+      payload: {
+        bindingId: "bind_evm",
+        orderId: "trusted-42",
+        channel: "checkout",
+        skuLines: [{ sku: "trusted-cup", quantity: 1 }],
+        payerAddress: user.address,
+      },
+    });
+    const intentId = intentResponse.json().intentId as string;
+    const transferResponse = await app.inject({
+      method: "POST",
+      url: `/v1/payment-intents/${intentId}/transfer-requested`,
+      payload: {
+        payerAddress: user.address,
+      },
+    });
+    expect(transferResponse.statusCode).toBe(200);
+
+    const broadcastResponse = await app.inject({
+      method: "POST",
+      url: `/v1/payment-intents/${intentId}/broadcasted`,
+      payload: {
+        txid,
+      },
+    });
+    expect(broadcastResponse.statusCode).toBe(200);
+    expect(broadcastResponse.json()).toMatchObject({
+      status: "broadcasted",
+      broadcastTxid: txid,
+    });
+
+    const recheckResponse = await app.inject({
+      method: "POST",
+      url: `/v1/settlement/evm/recheck/${intentId}`,
+    });
+    expect(recheckResponse.statusCode).toBe(201);
+    expect(recheckResponse.json()).toMatchObject({
+      trusted: true,
+      txid,
+      confirmations: 2,
+      status: "confirmed",
+      paymentIntent: {
+        status: "paid",
+      },
+      commerce: {
+        provider: "woocommerce",
+        dryRun: true,
+      },
     });
 
     await app.close();

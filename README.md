@@ -33,6 +33,7 @@ This release fixes the first public implementation scope:
 - EVM ERC-20 balance check request for wallet holding checks.
 - Merchant Embed Alpha with SDK methods, React Pay Button, script-tag widget, and demo store page.
 - File-backed sandbox persistence and merchant-scoped API key enforcement for local/pilot environments.
+- Trusted EVM ERC-20 settlement recheck from transaction receipts.
 - Merchant receiving address / vault confirmation model.
 - Settlement proof submission and idempotency.
 - WooCommerce, Shopify, and custom mark-as-paid adapter surface.
@@ -106,6 +107,16 @@ pnpm api:dev
 
 `REDEEMLOOP_STORAGE_FILE` persists merchants, vaults, entitlements, bindings, PaymentIntents, settlement proofs, idempotency keys, webhook endpoints, and commerce payment records across API restarts. It is a sandbox persistence adapter, not a production database replacement.
 `REDEEMLOOP_API_KEYS` accepts comma-separated `merchantId:apiKey` entries or a JSON object string. When configured, merchant-scoped `/v1` API calls must include `Authorization: Bearer <apiKey>`.
+
+Trusted EVM settlement recheck can be enabled with:
+
+```bash
+RPC_URL=https://base-mainnet.example \
+EVM_MIN_CONFIRMATIONS=2 \
+pnpm api:dev
+```
+
+After a wallet broadcasts a transfer, call `POST /v1/payment-intents/:intentId/broadcasted` with the tx hash, then `POST /v1/settlement/evm/recheck/:intentId`. The API reads the transaction receipt, verifies an ERC-20 `Transfer(payer, merchantVault, requiredAmount)` log, and only then creates a trusted settlement proof.
 
 Run the local Phase 0 console:
 
@@ -187,6 +198,7 @@ POST /v1/payment-intents/:intentId/check-balance
 POST /v1/payment-intents/:intentId/transfer-requested
 POST /v1/payment-intents/:intentId/broadcasted
 POST /v1/settlement/proofs
+POST /v1/settlement/evm/recheck/:intentId
 POST /v1/webhook-endpoints
 POST /v1/webhook-endpoints/:id/test
 ```
@@ -258,6 +270,7 @@ PaymentIntent
 - EVM ERC-20 持券检测所需的 balanceOf call request。
 - Merchant Embed Alpha：SDK 方法、React Pay Button、script-tag widget 和 demo store 页面。
 - 文件持久化 sandbox 和商户级 API key 校验，适用于本地和 pilot 环境。
+- 基于 transaction receipt 的可信 EVM ERC-20 settlement recheck。
 - 商户收券地址 / vault 确认模型。
 - Settlement proof 提交与幂等。
 - WooCommerce、Shopify、自定义 mark-as-paid 适配表面。

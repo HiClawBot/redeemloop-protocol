@@ -1,7 +1,9 @@
 import {
+  decodeEventLog,
   encodeFunctionData,
   getAddress,
   parseAbi,
+  parseAbiItem,
   type Address,
   type Hex,
 } from "viem";
@@ -9,6 +11,7 @@ import type { VoucherAssetDescriptor, VoucherPaymentProof } from "@redeemloop/co
 
 export const erc20TransferAbi = parseAbi(["function transfer(address to, uint256 amount) returns (bool)"]);
 export const erc20BalanceOfAbi = parseAbi(["function balanceOf(address account) view returns (uint256)"]);
+export const erc20TransferEvent = parseAbiItem("event Transfer(address indexed from, address indexed to, uint256 value)");
 
 export interface Erc20BalanceCheckInput {
   account: string;
@@ -75,6 +78,35 @@ export interface Erc20PaymentProofInput {
   confirmations?: number;
   logIndex?: number;
   status?: VoucherPaymentProof["status"];
+  rawProof?: unknown;
+}
+
+export interface Erc20ReceiptLog {
+  address: string;
+  topics: readonly Hex[];
+  data: Hex;
+  logIndex?: number;
+}
+
+export interface Erc20TransactionReceiptLike {
+  transactionHash?: Hex;
+  blockNumber?: bigint | number;
+  blockHash?: Hex;
+  status?: "success" | "reverted" | string;
+  logs: Erc20ReceiptLog[];
+}
+
+export interface VerifyErc20TransferReceiptInput {
+  proofId?: string;
+  intentId: string;
+  txid: string;
+  receipt: Erc20TransactionReceiptLike;
+  asset: VoucherAssetDescriptor;
+  from: string;
+  to: string;
+  amount?: string;
+  currentBlockNumber?: bigint | number;
+  minConfirmations?: number;
   rawProof?: unknown;
 }
 
@@ -182,6 +214,58 @@ export function createErc20PaymentProof(input: Erc20PaymentProofInput): VoucherP
   };
 }
 
+export function verifyErc20TransferReceipt(input: VerifyErc20TransferReceiptInput): VoucherPaymentProof {
+  assertErc20Asset(input.asset);
+  if (input.receipt.status === "reverted") throw new Error("EVM transaction receipt is reverted");
+  const txid = input.receipt.transactionHash ?? input.txid;
+  if (txid.toLowerCase() !== input.txid.toLowerCase()) throw new Error("EVM transaction receipt hash does not match txid");
+  const contract = getAddress(input.asset.contract);
+  const expectedFrom = getAddress(input.from);
+  const expectedTo = getAddress(input.to);
+  const amount = input.amount ?? input.asset.requiredAmount;
+  assertPositiveIntegerString(amount, "amount");
+  const expectedAmount = BigInt(amount);
+  const matchingLog = input.receipt.logs.find((log) => {
+    if (getAddress(log.address) !== contract) return false;
+    try {
+      const decoded = decodeEventLog({
+        abi: [erc20TransferEvent],
+        data: log.data,
+        topics: log.topics as [Hex, ...Hex[]],
+      });
+      if (decoded.eventName !== "Transfer") return false;
+      const args = decoded.args as { from: Address; to: Address; value: bigint };
+      return getAddress(args.from) === expectedFrom && getAddress(args.to) === expectedTo && args.value === expectedAmount;
+    } catch {
+      return false;
+    }
+  });
+  if (!matchingLog) throw new Error("No matching ERC-20 Transfer log found for PaymentIntent");
+
+  const confirmations = confirmationCount(input.receipt.blockNumber, input.currentBlockNumber);
+  const minConfirmations = input.minConfirmations ?? 1;
+
+  return {
+    proofId: input.proofId ?? `proof_evm_${input.txid.slice(2, 14)}_${matchingLog.logIndex ?? 0}`,
+    intentId: input.intentId,
+    chainNamespace: "eip155",
+    chainId: input.asset.chainId,
+    txid: input.txid,
+    blockNumber: input.receipt.blockNumber === undefined ? undefined : Number(input.receipt.blockNumber),
+    blockHash: input.receipt.blockHash,
+    confirmations,
+    from: expectedFrom,
+    to: expectedTo,
+    assetType: "erc20",
+    assetId: input.asset.assetId,
+    contract,
+    amount,
+    logIndex: matchingLog.logIndex,
+    status: confirmations >= minConfirmations ? "confirmed" : "seen",
+    rawProof: input.rawProof,
+  };
+}
+
 export function assertErc20Asset(asset: VoucherAssetDescriptor): asserts asset is VoucherAssetDescriptor & {
   chainNamespace: "eip155";
   chainId: number;
@@ -206,4 +290,13 @@ function assertNonNegativeIntegerString(value: string, fieldName: string): void 
   if (!/^[0-9]+$/.test(value)) {
     throw new Error(`${fieldName} must be a non-negative integer string`);
   }
+}
+
+function confirmationCount(receiptBlock: bigint | number | undefined, currentBlock: bigint | number | undefined): number {
+  if (receiptBlock === undefined) return 0;
+  const receiptBlockValue = BigInt(receiptBlock);
+  const currentBlockValue = currentBlock === undefined ? receiptBlockValue : BigInt(currentBlock);
+  if (currentBlockValue < receiptBlockValue) return 0;
+  const confirmations = currentBlockValue - receiptBlockValue + 1n;
+  return confirmations > BigInt(Number.MAX_SAFE_INTEGER) ? Number.MAX_SAFE_INTEGER : Number(confirmations);
 }

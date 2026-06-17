@@ -4,7 +4,9 @@ import { randomBytes, timingSafeEqual } from "node:crypto";
 import {
   buildErc20BalanceCheckRequest,
   buildErc20TransferRequest,
+  verifyErc20TransferReceipt,
   type Erc20BalanceCheckRequest,
+  type Erc20TransactionReceiptLike,
   type Erc20TransferRequest,
 } from "@redeemloop/adapters";
 import {
@@ -31,6 +33,7 @@ import {
   type Address,
   type Hex,
   createWalletClient,
+  createPublicClient,
   http,
   parseAbi,
   isHex,
@@ -76,6 +79,11 @@ interface ApiConfig {
   embedAllowedOrigins: string[];
   storageFile?: string;
   apiKeys: Record<string, string>;
+  evmMinConfirmations: number;
+  evmReceiptProvider?: (input: { txid: Hex; chainId: number; rpcUrl?: string }) => Promise<{
+    receipt: Erc20TransactionReceiptLike;
+    currentBlockNumber?: bigint | number;
+  }>;
   shopifyShopDomain?: string;
   shopifyAdminAccessToken?: string;
   shopifyApiVersion: string;
@@ -181,6 +189,8 @@ export async function createApp(config: Partial<ApiConfig> = {}): Promise<Fastif
     ),
     storageFile: config.storageFile ?? process.env.REDEEMLOOP_STORAGE_FILE,
     apiKeys: parseMerchantApiKeys(config.apiKeys ?? process.env.REDEEMLOOP_API_KEYS),
+    evmMinConfirmations: normalizePositiveInteger(config.evmMinConfirmations ?? process.env.EVM_MIN_CONFIRMATIONS ?? 1, "evmMinConfirmations"),
+    evmReceiptProvider: config.evmReceiptProvider,
     shopifyShopDomain: config.shopifyShopDomain ?? process.env.SHOPIFY_SHOP_DOMAIN,
     shopifyAdminAccessToken: config.shopifyAdminAccessToken ?? process.env.SHOPIFY_ADMIN_ACCESS_TOKEN,
     shopifyApiVersion: config.shopifyApiVersion ?? process.env.SHOPIFY_ADMIN_API_VERSION ?? "2026-04",
@@ -312,6 +322,7 @@ export async function createApp(config: Partial<ApiConfig> = {}): Promise<Fastif
     chainId: resolvedConfig.chainId,
     dryRun: resolvedConfig.dryRun,
     embedAllowedOrigins: resolvedConfig.embedAllowedOrigins.includes("*") ? ["*"] : resolvedConfig.embedAllowedOrigins,
+    evmMinConfirmations: resolvedConfig.evmMinConfirmations,
     persistence: {
       enabled: persistence.enabled,
     },
@@ -322,7 +333,7 @@ export async function createApp(config: Partial<ApiConfig> = {}): Promise<Fastif
 
   app.post("/v1/merchants", async (request, reply) => {
     try {
-      const body = request.body as Record<string, unknown>;
+      const body = recordOf(request.body);
       const now = new Date().toISOString();
       const merchantId = optionalString(body.merchantId, "merchantId") ?? randomId("mer");
       const merchant: MerchantRecord = {
@@ -350,7 +361,7 @@ export async function createApp(config: Partial<ApiConfig> = {}): Promise<Fastif
   app.post("/v1/merchants/:merchantId/domains/verify", async (request, reply) => {
     try {
       const params = request.params as { merchantId: string };
-      const body = request.body as Record<string, unknown>;
+      const body = recordOf(request.body);
       const merchant = merchants.get(params.merchantId);
       if (!merchant) return reply.code(404).send({ error: "Merchant not found" });
       const domain = requireString(body.domain, "domain");
@@ -674,10 +685,12 @@ export async function createApp(config: Partial<ApiConfig> = {}): Promise<Fastif
   app.post("/v1/payment-intents/:intentId/broadcasted", async (request, reply) => {
     try {
       const body = request.body as Record<string, unknown>;
-      requireString(body.txid, "txid");
-      const updated = updatePaymentIntent(request.params as { intentId: string }, paymentIntents, "broadcasted");
+      const txid = requireString(body.txid, "txid");
+      const updated = updatePaymentIntent(request.params as { intentId: string }, paymentIntents, "broadcasted", {
+        broadcastTxid: txid,
+      });
       if (!updated) return reply.code(404).send({ error: "PaymentIntent not found" });
-      return { ...updated, txid: body.txid };
+      return { ...updated, txid };
     } catch (error) {
       return reply.code(400).send(errorBody(error));
     }
@@ -762,6 +775,61 @@ export async function createApp(config: Partial<ApiConfig> = {}): Promise<Fastif
       status: intent.status,
       proofs: [...settlementProofs.values()].filter((proof) => proof.intentId === intent.intentId),
     };
+  });
+
+  app.post("/v1/settlement/evm/recheck/:intentId", async (request, reply) => {
+    try {
+      const params = request.params as { intentId: string };
+      const body = recordOf(request.body);
+      const intent = paymentIntents.get(params.intentId);
+      if (!intent) return reply.code(404).send({ error: "PaymentIntent not found" });
+      const asset = intent.selectedAsset ?? intent.acceptedAssets[0];
+      if (asset.chainNamespace !== "eip155" || asset.assetType !== "erc20") {
+        return reply.code(400).send({ error: "EVM settlement recheck currently supports EVM ERC-20 assets" });
+      }
+      const chainId = asset.chainId;
+      if (chainId === undefined) throw new Error("EVM settlement recheck requires asset.chainId");
+      const txid = normalizeOptionalHex(body.txid ?? intent.broadcastTxid, "txid");
+      if (!txid) throw new Error("txid is required; call broadcasted first or pass txid");
+      const from = requireString(body.from ?? intent.payerAddress, "from");
+      const minConfirmations = normalizePositiveInteger(body.minConfirmations ?? resolvedConfig.evmMinConfirmations, "minConfirmations");
+      const receiptResult = await fetchEvmReceipt(txid, chainId, resolvedConfig);
+      const proof = verifyErc20TransferReceipt({
+        proofId: optionalString(body.proofId, "proofId"),
+        intentId: intent.intentId,
+        txid,
+        receipt: receiptResult.receipt,
+        asset,
+        from,
+        to: intent.merchantVault,
+        amount: asset.requiredAmount,
+        currentBlockNumber: receiptResult.currentBlockNumber,
+        minConfirmations,
+      });
+      assertValidVoucherPaymentProof(proof, intent);
+      const idempotencyKey = proofIdempotencyKey(proof);
+      const existingProofId = proofIdempotency.get(idempotencyKey);
+      if (existingProofId) {
+        return { ...settlementProofs.get(existingProofId), duplicate: true, trusted: true };
+      }
+      settlementProofs.set(proof.proofId, proof);
+      proofIdempotency.set(idempotencyKey, proof.proofId);
+
+      const nextIntent = advanceIntentFromProof(intent, proof);
+      paymentIntents.set(nextIntent.intentId, nextIntent);
+      const commerce = proof.status === "confirmed" || proof.status === "finalized"
+        ? await markIntentCommercePaid(nextIntent, proof, bindings.get(nextIntent.bindingId), resolvedConfig, markPaidIdempotency)
+        : undefined;
+
+      return reply.code(201).send({
+        ...proof,
+        trusted: true,
+        paymentIntent: paymentIntents.get(nextIntent.intentId),
+        commerce,
+      });
+    } catch (error) {
+      return reply.code(400).send(errorBody(error));
+    }
   });
 
   app.post("/v1/webhook-endpoints", async (request, reply) => {
@@ -1490,6 +1558,39 @@ function buildTenderBalanceCheck(payerAddress: string, asset: VoucherAssetDescri
     requiredAmount: asset.requiredAmount,
     balance,
   });
+}
+
+async function fetchEvmReceipt(
+  txid: Hex,
+  chainId: number,
+  config: ApiConfig,
+): Promise<{ receipt: Erc20TransactionReceiptLike; currentBlockNumber?: bigint | number }> {
+  if (config.evmReceiptProvider) {
+    return config.evmReceiptProvider({ txid, chainId, rpcUrl: config.rpcUrl });
+  }
+  if (!config.rpcUrl) throw new Error("RPC_URL is required for trusted EVM settlement recheck");
+  const publicClient = createPublicClient({
+    transport: http(config.rpcUrl),
+  });
+  const [receipt, currentBlockNumber] = await Promise.all([
+    publicClient.getTransactionReceipt({ hash: txid }),
+    publicClient.getBlockNumber(),
+  ]);
+  return {
+    receipt: {
+      transactionHash: receipt.transactionHash,
+      blockNumber: receipt.blockNumber,
+      blockHash: receipt.blockHash,
+      status: receipt.status,
+      logs: receipt.logs.map((log) => ({
+        address: log.address,
+        topics: log.topics,
+        data: log.data,
+        logIndex: log.logIndex,
+      })),
+    },
+    currentBlockNumber,
+  };
 }
 
 function movePaymentIntentForBalanceCheck(

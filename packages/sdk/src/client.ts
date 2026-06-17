@@ -11,6 +11,8 @@ import type {
   CreatePaymentIntentInput,
   CreateSettlementProofInput,
   CreateWebhookEndpointInput,
+  EvmSettlementRecheckInput,
+  EvmSettlementRecheckResponse,
   ListBindingsInput,
   ListMerchantVaultsInput,
   MerchantVault,
@@ -180,6 +182,13 @@ export class RedeemLoopClient {
 
   async recheckSettlement(intentId: string): Promise<SettlementRecheckResponse> {
     return this.request(`/v1/settlement/recheck/${encodeURIComponent(intentId)}`, { method: "POST" });
+  }
+
+  async recheckEvmSettlement(intentId: string, input: EvmSettlementRecheckInput = {}): Promise<EvmSettlementRecheckResponse> {
+    return this.request(`/v1/settlement/evm/recheck/${encodeURIComponent(intentId)}`, {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
   }
 
   async createWebhookEndpoint(input: CreateWebhookEndpointInput): Promise<WebhookEndpoint> {

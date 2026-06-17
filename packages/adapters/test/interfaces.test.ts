@@ -1,12 +1,15 @@
 import { describe, expect, it } from "vitest";
+import { encodeAbiParameters, encodeEventTopics, type Hex } from "viem";
 
 import {
   buildErc20BalanceCheckRequest,
   buildErc20TransferRequest,
   createErc20PaymentProof,
+  erc20TransferEvent,
   type EvmAdapter,
   type IndexerAdapter,
   type PsbtBuilderAdapter,
+  verifyErc20TransferReceipt,
 } from "../src/index.js";
 import type { VoucherAssetDescriptor } from "@redeemloop/core";
 
@@ -98,6 +101,71 @@ describe("adapter contracts", () => {
     });
     expect(short.hasSufficientBalance).toBe(false);
     expect(short.shortfall).toBe("1");
+  });
+
+  it("verifies ERC-20 Transfer logs from an EVM receipt", () => {
+    const asset: VoucherAssetDescriptor = {
+      chainNamespace: "eip155",
+      chainId: 8453,
+      assetType: "erc20",
+      assetId: "eip155:8453/erc20:0x0000000000000000000000000000000000000def",
+      contract: "0x0000000000000000000000000000000000000def",
+      requiredAmount: "1",
+      termsHash: "terms",
+    };
+    const from = "0x0000000000000000000000000000000000000123";
+    const to = "0x0000000000000000000000000000000000000abc";
+    const receipt = {
+      transactionHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const,
+      blockNumber: 10n,
+      blockHash: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" as const,
+      status: "success",
+      logs: [
+        {
+          address: asset.contract!,
+          topics: encodeEventTopics({
+            abi: [erc20TransferEvent],
+            eventName: "Transfer",
+            args: {
+              from,
+              to,
+            },
+          }) as Hex[],
+          data: encodeAbiParameters([{ type: "uint256" }], [1n]),
+          logIndex: 2,
+        },
+      ],
+    };
+
+    expect(
+      verifyErc20TransferReceipt({
+        intentId: "pi_1",
+        txid: receipt.transactionHash,
+        receipt,
+        asset,
+        from,
+        to,
+        currentBlockNumber: 12n,
+        minConfirmations: 2,
+      }),
+    ).toMatchObject({
+      intentId: "pi_1",
+      status: "confirmed",
+      confirmations: 3,
+      logIndex: 2,
+      amount: "1",
+    });
+
+    expect(() =>
+      verifyErc20TransferReceipt({
+        intentId: "pi_1",
+        txid: receipt.transactionHash,
+        receipt,
+        asset,
+        from,
+        to: "0x0000000000000000000000000000000000000bad",
+      }),
+    ).toThrow("No matching ERC-20 Transfer log");
   });
 
   it("keeps Bitcoin and Fractal transfer support behind PSBT/indexer interfaces", async () => {
