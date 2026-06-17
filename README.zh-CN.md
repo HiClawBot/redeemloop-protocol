@@ -29,6 +29,7 @@ PaymentIntent
 - Asset Binding 模型与校验。
 - 针对已有提货资产的 Voucher Tender 流程。
 - PaymentIntent 状态机与 API。
+- EVM ERC-20 钱包支付按钮所需的 transfer calldata。
 - 商户收券地址 / vault 确认模型。
 - Settlement proof 提交与幂等。
 - WooCommerce、Shopify、自定义 mark-as-paid 适配表面。
@@ -103,6 +104,8 @@ pnpm pos:dev
 3. Request Transfer。
 4. Confirm Receipt。
 5. 查看 dry-run mark-as-paid 适配输出。
+
+对于 EVM ERC-20 提货资产，`Request Transfer` 会返回钱包可直接使用的 `transfer(merchantVault, requiredAmount)` 交易请求，包括合约地址、calldata、chain ID 和 `value: 0x0`。
 
 ## API 表面
 

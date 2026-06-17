@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import type { EvmAdapter, IndexerAdapter, PsbtBuilderAdapter } from "../src/index.js";
+import {
+  buildErc20TransferRequest,
+  createErc20PaymentProof,
+  type EvmAdapter,
+  type IndexerAdapter,
+  type PsbtBuilderAdapter,
+} from "../src/index.js";
 import type { VoucherAssetDescriptor } from "@redeemloop/core";
 
 const runeAsset: VoucherAssetDescriptor = {
@@ -13,6 +19,56 @@ const runeAsset: VoucherAssetDescriptor = {
 };
 
 describe("adapter contracts", () => {
+  it("builds ERC-20 transfer calldata for wallet tender requests", () => {
+    const asset: VoucherAssetDescriptor = {
+      chainNamespace: "eip155",
+      chainId: 8453,
+      assetType: "erc20",
+      assetId: "eip155:8453/erc20:0x0000000000000000000000000000000000000def",
+      contract: "0x0000000000000000000000000000000000000def",
+      requiredAmount: "1",
+      termsHash: "terms",
+    };
+
+    const request = buildErc20TransferRequest({
+      from: "0x0000000000000000000000000000000000000123",
+      to: "0x0000000000000000000000000000000000000abc",
+      asset,
+    });
+
+    expect(request).toMatchObject({
+      chainNamespace: "eip155",
+      chainId: 8453,
+      assetType: "erc20",
+      amount: "1",
+      transaction: {
+        value: "0x0",
+        functionName: "transfer",
+      },
+    });
+    expect(request.contract.toLowerCase()).toBe(asset.contract);
+    expect(request.transaction.to.toLowerCase()).toBe(asset.contract);
+    expect(request.transaction.args[0].toLowerCase()).toBe("0x0000000000000000000000000000000000000abc");
+    expect(request.transaction.args[1]).toBe("1");
+    expect(request.transaction.data.startsWith("0xa9059cbb")).toBe(true);
+
+    expect(
+      createErc20PaymentProof({
+        proofId: "proof_1",
+        intentId: "pi_1",
+        asset,
+        txid: "0x1234",
+        from: "0x0000000000000000000000000000000000000123",
+        to: "0x0000000000000000000000000000000000000abc",
+        confirmations: 1,
+      }),
+    ).toMatchObject({
+      chainNamespace: "eip155",
+      assetType: "erc20",
+      amount: "1",
+    });
+  });
+
   it("keeps Bitcoin and Fractal transfer support behind PSBT/indexer interfaces", async () => {
     const psbtBuilder: PsbtBuilderAdapter = {
       async buildTransferPsbt(input) {

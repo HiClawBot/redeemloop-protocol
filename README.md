@@ -29,6 +29,7 @@ This release fixes the first public implementation scope:
 - Asset Binding model and validators.
 - Voucher Tender flow for an existing voucher asset.
 - PaymentIntent state machine and API.
+- EVM ERC-20 transfer request calldata for wallet payment buttons.
 - Merchant receiving address / vault confirmation model.
 - Settlement proof submission and idempotency.
 - WooCommerce, Shopify, and custom mark-as-paid adapter surface.
@@ -103,6 +104,8 @@ Open `http://localhost:3000`, keep the API at `http://localhost:8787`, then run:
 3. Request Transfer.
 4. Confirm Receipt.
 5. Review the dry-run mark-as-paid adapter output.
+
+For EVM ERC-20 voucher assets, `Request Transfer` returns a wallet-ready `transfer(merchantVault, requiredAmount)` transaction request with contract address, calldata, chain ID, and `value: 0x0`.
 
 ## API Surface
 
@@ -188,6 +191,7 @@ PaymentIntent
 - Asset Binding 模型与校验。
 - 针对已有提货资产的 Voucher Tender 流程。
 - PaymentIntent 状态机与 API。
+- EVM ERC-20 钱包支付按钮所需的 transfer calldata。
 - 商户收券地址 / vault 确认模型。
 - Settlement proof 提交与幂等。
 - WooCommerce、Shopify、自定义 mark-as-paid 适配表面。
@@ -262,6 +266,8 @@ pnpm pos:dev
 3. Request Transfer。
 4. Confirm Receipt。
 5. 查看 dry-run mark-as-paid 适配输出。
+
+对于 EVM ERC-20 提货资产，`Request Transfer` 会返回钱包可直接使用的 `transfer(merchantVault, requiredAmount)` 交易请求，包括合约地址、calldata、chain ID 和 `value: 0x0`。
 
 ## API 表面
 

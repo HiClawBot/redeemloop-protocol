@@ -72,6 +72,9 @@ importers:
       '@redeemloop/core':
         specifier: workspace:*
         version: link:../core
+      viem:
+        specifier: ^2.22.17
+        version: 2.52.2(typescript@5.9.3)(zod@4.4.3)
     devDependencies:
       '@types/node':
         specifier: ^22.10.7
@@ -131,6 +134,9 @@ importers:
       '@fastify/cors':
         specifier: ^11.2.0
         version: 11.2.0
+      '@redeemloop/adapters':
+        specifier: workspace:*
+        version: link:../../packages/adapters
       '@redeemloop/core':
         specifier: workspace:*
         version: link:../../packages/core

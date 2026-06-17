@@ -183,7 +183,8 @@ Wizard 步骤：
 
 ```text
 balanceOf(user)
-transfer(merchantVault, requiredAmount)
+build transfer(merchantVault, requiredAmount) wallet transaction request
+wallet sends transfer
 监听 Transfer event
 匹配 PaymentIntent
 markOrderPaid
@@ -196,6 +197,7 @@ markOrderPaid
 - 支持 decimals 检查，推荐 decimals = 0，但不强制阻断。
 - 支持用户复制 txid 后手动补录。
 - Transfer proof 必须包含 blockNumber、txHash、logIndex、from、to、amount、contract。
+- transfer-requested API 必须返回 ERC-20 contract 地址、calldata、chainId、value=0x0，供钱包按钮使用。
 
 ## 8. Bitcoin / Fractal 接口
 

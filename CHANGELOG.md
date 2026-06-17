@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Concrete EVM ERC-20 transfer request builder in `@redeemloop/adapters`.
+- `transfer.evm.transaction` response on `POST /v1/payment-intents/:intentId/transfer-requested` for wallet-ready ERC-20 `transfer(merchantVault, requiredAmount)` calls.
+- Phase 0 console display for the generated transfer request.
+
+### 中文说明
+
+- 在 `@redeemloop/adapters` 中新增具体 EVM ERC-20 transfer request builder。
+- `POST /v1/payment-intents/:intentId/transfer-requested` 现在返回 `transfer.evm.transaction`，可直接用于钱包发起 ERC-20 `transfer(merchantVault, requiredAmount)`。
+- Phase 0 控制台会展示生成的 transfer request。
+
 ## v0.2.0 - 2026-06-17
 
 RedeemLoop Phase 0 has been realigned as a non-issuing voucher payment gateway.

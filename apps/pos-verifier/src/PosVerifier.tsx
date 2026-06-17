@@ -66,6 +66,7 @@ export function PosVerifier() {
   const [walletAddress, setWalletAddress] = useState<string>("");
   const [binding, setBinding] = useState<BindingResponse | null>(null);
   const [intent, setIntent] = useState<PaymentIntentResponse | null>(null);
+  const [transferRequest, setTransferRequest] = useState<PaymentIntentResponse["transfer"] | null>(null);
   const [proof, setProof] = useState<SettlementProofResponse | null>(null);
   const [status, setStatus] = useState<Record<string, StepStatus>>({
     binding: "idle",
@@ -101,6 +102,7 @@ export function PosVerifier() {
       const created = await createAssetBindingRequest();
       setBinding(created);
       setIntent(null);
+      setTransferRequest(null);
       setProof(null);
     });
   }
@@ -111,6 +113,7 @@ export function PosVerifier() {
       setBinding(activeBinding);
       const created = await createPaymentIntentRequest(activeBinding.bindingId);
       setIntent(created);
+      setTransferRequest(null);
       setProof(null);
     });
   }
@@ -120,6 +123,7 @@ export function PosVerifier() {
       const activeIntent = intent ?? (await createPaymentIntentRequest((binding ?? (await createAssetBindingRequest())).bindingId));
       const requested = await requestTransferRequest(activeIntent.intentId);
       setIntent(requested);
+      setTransferRequest(requested.transfer ?? null);
     });
   }
 
@@ -130,9 +134,10 @@ export function PosVerifier() {
       const activeIntent = intent ?? (await createPaymentIntentRequest(activeBinding.bindingId));
       const requested = activeIntent.status === "transfer_requested" ? activeIntent : await requestTransferRequest(activeIntent.intentId);
       setIntent(requested);
+      setTransferRequest(requested.transfer ?? null);
       const confirmed = await submitSettlementProofRequest(requested);
       setProof(confirmed);
-      if (confirmed.paymentIntent) setIntent(confirmed.paymentIntent);
+      if (confirmed.paymentIntent) setIntent({ ...confirmed.paymentIntent, transfer: requested.transfer });
     });
   }
 
@@ -146,10 +151,11 @@ export function PosVerifier() {
       setStatus((current) => ({ ...current, intent: "done" }));
       const requested = await requestTransferRequest(created.intentId);
       setIntent(requested);
+      setTransferRequest(requested.transfer ?? null);
       setStatus((current) => ({ ...current, transfer: "done" }));
       const confirmed = await submitSettlementProofRequest(requested);
       setProof(confirmed);
-      if (confirmed.paymentIntent) setIntent(confirmed.paymentIntent);
+      if (confirmed.paymentIntent) setIntent({ ...confirmed.paymentIntent, transfer: requested.transfer });
       setStatus((current) => ({ ...current, proof: "done" }));
     });
   }
@@ -436,6 +442,7 @@ export function PosVerifier() {
 
                 <dl className="mt-6 grid gap-3 text-sm">
                   <ResultRow label="Intent" value={intent ? intent.status : "Not created"} />
+                  <ResultRow label="Transfer" value={transferRequest?.evm ? "ERC-20 calldata ready" : "Waiting"} />
                   <ResultRow label="Receiver" value={shortenHash(form.merchantVault, 8)} />
                   <ResultRow label="Proof" value={proof ? proof.status : "Not submitted"} />
                   <ResultRow label="Commerce" value={proof?.commerce ? `${proof.commerce.provider} dry-run` : "Waiting"} />
@@ -459,6 +466,9 @@ export function PosVerifier() {
             </OutputPanel>
             <OutputPanel title="PaymentIntent">
               <pre className="output">{intent ? JSON.stringify(intent, null, 2) : "No PaymentIntent created yet."}</pre>
+            </OutputPanel>
+            <OutputPanel title="Transfer Request">
+              <pre className="output">{transferRequest ? JSON.stringify(transferRequest, null, 2) : "No transfer request created yet."}</pre>
             </OutputPanel>
             <OutputPanel title="Proof">
               <pre className="output">{proof ? JSON.stringify(proof, null, 2) : "No receipt proof submitted yet."}</pre>

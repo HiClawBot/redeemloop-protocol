@@ -54,6 +54,25 @@ RedeemLoop Voucher
 跳转成功页
 ```
 
+对 EVM ERC-20 资产，前端调用：
+
+```http
+POST /v1/payment-intents/:intentId/transfer-requested
+```
+
+响应中的 `transfer.evm.transaction` 可以直接传给 EVM 钱包：
+
+```json
+{
+  "to": "0xVoucherToken",
+  "data": "0xa9059cbb...",
+  "value": "0x0",
+  "chainId": 8453
+}
+```
+
+这笔交易调用的是已有 ERC-20 合约的 `transfer(merchantVault, requiredAmount)`，RedeemLoop 不部署资产合约，也不托管用户资产。
+
 ## 4. React 集成
 
 ```tsx

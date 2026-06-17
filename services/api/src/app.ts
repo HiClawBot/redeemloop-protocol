@@ -2,6 +2,10 @@ import cors from "@fastify/cors";
 import Fastify, { type FastifyInstance, type FastifyReply } from "fastify";
 import { randomBytes } from "node:crypto";
 import {
+  buildErc20TransferRequest,
+  type Erc20TransferRequest,
+} from "@redeemloop/adapters";
+import {
   type CommerceTarget,
   type BindingStatus,
   type Entitlement,
@@ -516,6 +520,7 @@ export async function createApp(config: Partial<ApiConfig> = {}): Promise<Fastif
           asset,
           amount: asset.requiredAmount,
           settlementPolicy: next.settlementPolicy,
+          evm: buildTenderTransferRequest(next, asset),
         },
       };
     } catch (error) {
@@ -1118,6 +1123,16 @@ function moveIntentTo(intent: RedeemLoopPaymentIntent, status: PaymentIntentStat
   if (status === "paid") return moveIntentTo(moveIntentTo(intent, "confirmed"), "paid");
   assertTransition(intent.status, status);
   return intent;
+}
+
+function buildTenderTransferRequest(intent: RedeemLoopPaymentIntent, asset: VoucherAssetDescriptor): Erc20TransferRequest | undefined {
+  if (asset.chainNamespace !== "eip155" || asset.assetType !== "erc20") return undefined;
+  return buildErc20TransferRequest({
+    from: intent.payerAddress,
+    to: intent.merchantVault,
+    asset,
+    amount: asset.requiredAmount,
+  });
 }
 
 async function markIntentCommercePaid(

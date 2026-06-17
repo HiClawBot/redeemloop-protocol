@@ -67,6 +67,24 @@ export interface PaymentIntentResponse {
     asset: VoucherAssetDescriptor;
     amount: string;
     settlementPolicy: "collect" | "burn" | "escrow";
+    evm?: {
+      chainNamespace: "eip155";
+      chainId: number;
+      assetType: "erc20";
+      from?: Address;
+      to: Address;
+      contract: Address;
+      amount: string;
+      transaction: {
+        chainId: number;
+        from?: Address;
+        to: Address;
+        data: `0x${string}`;
+        value: "0x0";
+        functionName: "transfer";
+        args: [Address, string];
+      };
+    };
   };
 }
 

@@ -125,8 +125,21 @@ describe("RedeemLoop API relayer prototype", () => {
       transfer: {
         to: operator,
         amount: "1",
+        evm: {
+          chainNamespace: "eip155",
+          chainId: 31337,
+          assetType: "erc20",
+          contract: token,
+          transaction: {
+            to: token,
+            value: "0x0",
+            functionName: "transfer",
+            args: [operator, "1"],
+          },
+        },
       },
     });
+    expect(transferResponse.json().transfer.evm.transaction.data).toMatch(/^0xa9059cbb/);
 
     const proofResponse = await app.inject({
       method: "POST",

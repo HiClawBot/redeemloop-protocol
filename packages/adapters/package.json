@@ -18,7 +18,8 @@
     "lint": "tsc --noEmit -p tsconfig.test.json"
   },
   "dependencies": {
-    "@redeemloop/core": "workspace:*"
+    "@redeemloop/core": "workspace:*",
+    "viem": "^2.22.17"
   },
   "devDependencies": {
     "@types/node": "^22.10.7",

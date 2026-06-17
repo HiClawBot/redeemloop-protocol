@@ -49,6 +49,35 @@ POST /v1/payment-intents/:intentId/broadcasted
 POST /v1/payment-intents/:intentId/cancel
 ```
 
+`POST /v1/payment-intents/:intentId/transfer-requested` 返回标准化转券请求。对于 EVM ERC-20 资产，响应包含钱包可直接使用的 `evm.transaction`：
+
+```json
+{
+  "status": "transfer_requested",
+  "transfer": {
+    "to": "0xMerchantVault",
+    "amount": "1",
+    "settlementPolicy": "collect",
+    "evm": {
+      "chainNamespace": "eip155",
+      "chainId": 8453,
+      "assetType": "erc20",
+      "contract": "0xVoucherToken",
+      "transaction": {
+        "chainId": 8453,
+        "to": "0xVoucherToken",
+        "data": "0xa9059cbb...",
+        "value": "0x0",
+        "functionName": "transfer",
+        "args": ["0xMerchantVault", "1"]
+      }
+    }
+  }
+}
+```
+
+客户端应把 `transaction.to` 作为 ERC-20 合约地址，把 `transaction.data` 作为 calldata，引导用户钱包把指定数量的已有提货资产转入商户收券地址。
+
 ### Settlement
 
 ```http
