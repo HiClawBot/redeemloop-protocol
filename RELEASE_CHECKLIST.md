@@ -7,6 +7,8 @@ Use this checklist before publishing the v0.2 GitHub release.
 - [ ] Confirm branch contains only intended project files.
 - [ ] Confirm generated files are ignored: `node_modules`, `.next`, `dist`, `out`, `cache`, `broadcast`, and `packages/contracts/lib`.
 - [ ] Confirm `README.md` is bilingual and reflects v0.2 Phase 0.
+- [ ] Confirm `README.zh-CN.md` is updated whenever `README.md` changes.
+- [ ] Confirm GitHub Release notes include English and Chinese sections.
 - [ ] Confirm docs and whitepaper use Asset Binding, Voucher Tender, PaymentIntent, receipt confirmation, and mark-as-paid language.
 - [ ] Confirm Solidity code is labeled as an EVM example, not a core issuance module.
 - [ ] Confirm `CHANGELOG.md`, `SECURITY.md`, and `CONTRIBUTING.md` are present.

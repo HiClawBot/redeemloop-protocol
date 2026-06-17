@@ -1,5 +1,7 @@
 # RedeemLoop Protocol
 
+[English](README.md) | [中文](README.zh-CN.md)
+
 RedeemLoop is a non-issuing, multi-chain voucher payment gateway.
 
 Merchants bring their own existing FT, NFT, Rune, or Inscription voucher assets. RedeemLoop binds those assets to goods or services, creates a `PaymentIntent`, confirms that the merchant received the voucher asset on-chain or through an indexer, and tells the commerce system to mark the order as paid.

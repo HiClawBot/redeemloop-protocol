@@ -45,6 +45,7 @@ pnpm --filter @redeemloop/example-evm-erc20-voucher lint
 - Keep behavioral scope small.
 - Add tests for new behavior.
 - Update docs when commands, APIs, or package behavior change.
+- Update both English and Chinese README/release notes for public-facing changes.
 - Preserve the non-issuing protocol boundary.
 - Do not commit generated folders such as `node_modules`, `.next`, `dist`, `out`, `cache`, or `packages/contracts/lib`.
 - Do not put private user data, API keys, seed phrases, or production private keys in the repository.
