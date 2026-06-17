@@ -2,7 +2,9 @@ import cors from "@fastify/cors";
 import Fastify, { type FastifyInstance, type FastifyReply } from "fastify";
 import { randomBytes } from "node:crypto";
 import {
+  buildErc20BalanceCheckRequest,
   buildErc20TransferRequest,
+  type Erc20BalanceCheckRequest,
   type Erc20TransferRequest,
 } from "@redeemloop/adapters";
 import {
@@ -495,6 +497,33 @@ export async function createApp(config: Partial<ApiConfig> = {}): Promise<Fastif
         merchantVault: findMerchantVaultAddress(bindings.get(intent.bindingId), asset),
       });
       return updated;
+    } catch (error) {
+      return reply.code(400).send(errorBody(error));
+    }
+  });
+
+  app.post("/v1/payment-intents/:intentId/check-balance", async (request, reply) => {
+    try {
+      const params = request.params as { intentId: string };
+      const body = request.body as Record<string, unknown>;
+      const intent = paymentIntents.get(params.intentId);
+      if (!intent) return reply.code(404).send({ error: "PaymentIntent not found" });
+      const asset = optionalString(body.assetId, "assetId") ? findAcceptedAsset(intent, requireString(body.assetId, "assetId")) : intent.selectedAsset ?? intent.acceptedAssets[0];
+      const payerAddress = optionalString(body.payerAddress, "payerAddress") ?? intent.payerAddress;
+      if (!payerAddress) throw new Error("payerAddress is required");
+      const balance = optionalString(body.balance, "balance");
+      const balanceCheck = buildTenderBalanceCheck(payerAddress, asset, balance);
+      const status = balanceCheck.hasSufficientBalance === true ? "asset_selected" : "wallet_connected";
+      const updated = movePaymentIntentForBalanceCheck(intent, status, {
+        payerAddress,
+        selectedAsset: asset,
+        merchantVault: findMerchantVaultAddress(bindings.get(intent.bindingId), asset),
+      });
+      paymentIntents.set(updated.intentId, updated);
+      return {
+        ...updated,
+        balanceCheck,
+      };
     } catch (error) {
       return reply.code(400).send(errorBody(error));
     }
@@ -1133,6 +1162,43 @@ function buildTenderTransferRequest(intent: RedeemLoopPaymentIntent, asset: Vouc
     asset,
     amount: asset.requiredAmount,
   });
+}
+
+function buildTenderBalanceCheck(payerAddress: string, asset: VoucherAssetDescriptor, balance?: string): Erc20BalanceCheckRequest {
+  if (asset.chainNamespace !== "eip155" || asset.assetType !== "erc20") {
+    throw new Error("Balance check currently supports EVM ERC-20 voucher assets");
+  }
+  return buildErc20BalanceCheckRequest({
+    account: payerAddress,
+    asset,
+    requiredAmount: asset.requiredAmount,
+    balance,
+  });
+}
+
+function movePaymentIntentForBalanceCheck(
+  intent: RedeemLoopPaymentIntent,
+  targetStatus: "wallet_connected" | "asset_selected",
+  patch: Partial<RedeemLoopPaymentIntent>,
+): RedeemLoopPaymentIntent {
+  let next = intent;
+  if (next.status === "created") {
+    next = transitionPaymentIntent(next, "wallet_connected");
+  }
+  if (targetStatus === "asset_selected" && next.status === "wallet_connected") {
+    next = transitionPaymentIntent(next, "asset_selected");
+  }
+  const updated = {
+    ...next,
+    ...patch,
+    intentId: intent.intentId,
+    bindingId: intent.bindingId,
+    merchantId: intent.merchantId,
+    status: next.status,
+    updatedAt: new Date().toISOString(),
+  };
+  assertValidPaymentIntent(updated);
+  return updated;
 }
 
 async function markIntentCommercePaid(

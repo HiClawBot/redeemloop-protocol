@@ -8,6 +8,33 @@ import {
 import type { VoucherAssetDescriptor, VoucherPaymentProof } from "@redeemloop/core";
 
 export const erc20TransferAbi = parseAbi(["function transfer(address to, uint256 amount) returns (bool)"]);
+export const erc20BalanceOfAbi = parseAbi(["function balanceOf(address account) view returns (uint256)"]);
+
+export interface Erc20BalanceCheckInput {
+  account: string;
+  asset: VoucherAssetDescriptor;
+  requiredAmount?: string;
+  balance?: string;
+}
+
+export interface Erc20BalanceCheckRequest {
+  chainNamespace: "eip155";
+  chainId: number;
+  assetType: "erc20";
+  account: Address;
+  contract: Address;
+  requiredAmount: string;
+  call: {
+    chainId: number;
+    to: Address;
+    data: Hex;
+    functionName: "balanceOf";
+    args: [Address];
+  };
+  providedBalance?: string;
+  hasSufficientBalance?: boolean;
+  shortfall?: string;
+}
 
 export interface Erc20TransferRequestInput {
   from?: string;
@@ -84,6 +111,52 @@ export function buildErc20TransferRequest(input: Erc20TransferRequestInput): Erc
   };
 }
 
+export function buildErc20BalanceCheckRequest(input: Erc20BalanceCheckInput): Erc20BalanceCheckRequest {
+  assertErc20Asset(input.asset);
+  const account = getAddress(input.account);
+  const contract = getAddress(input.asset.contract);
+  const requiredAmount = input.requiredAmount ?? input.asset.requiredAmount;
+  assertPositiveIntegerString(requiredAmount, "requiredAmount");
+  const data = encodeFunctionData({
+    abi: erc20BalanceOfAbi,
+    functionName: "balanceOf",
+    args: [account],
+  });
+  const evaluated = input.balance === undefined ? {} : evaluateErc20Balance(input.balance, requiredAmount);
+
+  return {
+    chainNamespace: "eip155",
+    chainId: input.asset.chainId,
+    assetType: "erc20",
+    account,
+    contract,
+    requiredAmount,
+    call: {
+      chainId: input.asset.chainId,
+      to: contract,
+      data,
+      functionName: "balanceOf",
+      args: [account],
+    },
+    providedBalance: input.balance,
+    ...evaluated,
+  };
+}
+
+export function evaluateErc20Balance(balance: string, requiredAmount: string): {
+  hasSufficientBalance: boolean;
+  shortfall: string;
+} {
+  assertNonNegativeIntegerString(balance, "balance");
+  assertPositiveIntegerString(requiredAmount, "requiredAmount");
+  const balanceValue = BigInt(balance);
+  const requiredValue = BigInt(requiredAmount);
+  return {
+    hasSufficientBalance: balanceValue >= requiredValue,
+    shortfall: balanceValue >= requiredValue ? "0" : String(requiredValue - balanceValue),
+  };
+}
+
 export function createErc20PaymentProof(input: Erc20PaymentProofInput): VoucherPaymentProof {
   assertErc20Asset(input.asset);
   const amount = input.amount ?? input.asset.requiredAmount;
@@ -126,5 +199,11 @@ export function assertErc20Asset(asset: VoucherAssetDescriptor): asserts asset i
 function assertPositiveIntegerString(value: string, fieldName: string): void {
   if (!/^[0-9]+$/.test(value) || BigInt(value) <= 0n) {
     throw new Error(`${fieldName} must be a positive integer string`);
+  }
+}
+
+function assertNonNegativeIntegerString(value: string, fieldName: string): void {
+  if (!/^[0-9]+$/.test(value)) {
+    throw new Error(`${fieldName} must be a non-negative integer string`);
   }
 }

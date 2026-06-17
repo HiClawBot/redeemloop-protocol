@@ -44,9 +44,43 @@ POST /v1/payment-intents
 GET  /v1/payment-intents/:intentId
 POST /v1/payment-intents/:intentId/connect-wallet
 POST /v1/payment-intents/:intentId/select-asset
+POST /v1/payment-intents/:intentId/check-balance
 POST /v1/payment-intents/:intentId/transfer-requested
 POST /v1/payment-intents/:intentId/broadcasted
 POST /v1/payment-intents/:intentId/cancel
+```
+
+`POST /v1/payment-intents/:intentId/check-balance` 返回 EVM ERC-20 `balanceOf(payer)` call request，并可在传入 `balance` 时判断余额是否足够：
+
+```json
+{
+  "payerAddress": "0xPayer",
+  "balance": "1"
+}
+```
+
+```json
+{
+  "status": "asset_selected",
+  "balanceCheck": {
+    "chainNamespace": "eip155",
+    "chainId": 8453,
+    "assetType": "erc20",
+    "account": "0xPayer",
+    "contract": "0xVoucherToken",
+    "requiredAmount": "1",
+    "call": {
+      "chainId": 8453,
+      "to": "0xVoucherToken",
+      "data": "0x70a08231...",
+      "functionName": "balanceOf",
+      "args": ["0xPayer"]
+    },
+    "providedBalance": "1",
+    "hasSufficientBalance": true,
+    "shortfall": "0"
+  }
+}
 ```
 
 `POST /v1/payment-intents/:intentId/transfer-requested` 返回标准化转券请求。对于 EVM ERC-20 资产，响应包含钱包可直接使用的 `evm.transaction`：

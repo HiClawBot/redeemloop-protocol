@@ -5,14 +5,16 @@
 ### Added
 
 - Concrete EVM ERC-20 transfer request builder in `@redeemloop/adapters`.
+- EVM ERC-20 balance check request builder and PaymentIntent check-balance API.
 - `transfer.evm.transaction` response on `POST /v1/payment-intents/:intentId/transfer-requested` for wallet-ready ERC-20 `transfer(merchantVault, requiredAmount)` calls.
-- Phase 0 console display for the generated transfer request.
+- Phase 0 console display for generated balance and transfer requests.
 
 ### 中文说明
 
 - 在 `@redeemloop/adapters` 中新增具体 EVM ERC-20 transfer request builder。
+- 新增 EVM ERC-20 balance check request builder 和 PaymentIntent check-balance API。
 - `POST /v1/payment-intents/:intentId/transfer-requested` 现在返回 `transfer.evm.transaction`，可直接用于钱包发起 ERC-20 `transfer(merchantVault, requiredAmount)`。
-- Phase 0 控制台会展示生成的 transfer request。
+- Phase 0 控制台会展示生成的 balance request 和 transfer request。
 
 ## v0.2.0 - 2026-06-17
 

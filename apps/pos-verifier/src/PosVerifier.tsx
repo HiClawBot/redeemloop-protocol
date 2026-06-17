@@ -17,7 +17,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import { getAddress, isAddress } from "viem";
 
 import { createPaymentLink, shortenHash } from "./redeemLink";
-import type { BindingResponse, CommerceProvider, PaymentIntentResponse, SettlementProofResponse } from "./types";
+import type { BalanceCheckResponse, BindingResponse, CommerceProvider, PaymentIntentResponse, SettlementProofResponse } from "./types";
 
 type StepStatus = "idle" | "busy" | "done" | "error";
 
@@ -38,6 +38,7 @@ interface FormState {
   storeId: string;
   orderId: string;
   payerAddress: string;
+  walletBalance: string;
   txid: string;
 }
 
@@ -58,6 +59,7 @@ const initialForm: FormState = {
   storeId: "woo-store",
   orderId: "42",
   payerAddress: "0x0000000000000000000000000000000000000123",
+  walletBalance: "1",
   txid: "0x1234",
 };
 
@@ -66,12 +68,14 @@ export function PosVerifier() {
   const [walletAddress, setWalletAddress] = useState<string>("");
   const [binding, setBinding] = useState<BindingResponse | null>(null);
   const [intent, setIntent] = useState<PaymentIntentResponse | null>(null);
+  const [balanceCheck, setBalanceCheck] = useState<BalanceCheckResponse["balanceCheck"] | null>(null);
   const [transferRequest, setTransferRequest] = useState<PaymentIntentResponse["transfer"] | null>(null);
   const [proof, setProof] = useState<SettlementProofResponse | null>(null);
   const [status, setStatus] = useState<Record<string, StepStatus>>({
     binding: "idle",
     wallet: "idle",
     intent: "idle",
+    balance: "idle",
     transfer: "idle",
     proof: "idle",
     payButton: "idle",
@@ -102,6 +106,7 @@ export function PosVerifier() {
       const created = await createAssetBindingRequest();
       setBinding(created);
       setIntent(null);
+      setBalanceCheck(null);
       setTransferRequest(null);
       setProof(null);
     });
@@ -113,6 +118,7 @@ export function PosVerifier() {
       setBinding(activeBinding);
       const created = await createPaymentIntentRequest(activeBinding.bindingId);
       setIntent(created);
+      setBalanceCheck(null);
       setTransferRequest(null);
       setProof(null);
     });
@@ -127,11 +133,28 @@ export function PosVerifier() {
     });
   }
 
+  async function checkBalance() {
+    await runStep("balance", async () => {
+      const activeBinding = binding ?? (await createAssetBindingRequest());
+      setBinding(activeBinding);
+      const activeIntent = intent ?? (await createPaymentIntentRequest(activeBinding.bindingId));
+      const checked = await checkBalanceRequest(activeIntent.intentId);
+      setIntent(checked);
+      setBalanceCheck(checked.balanceCheck);
+      setTransferRequest(null);
+    });
+  }
+
   async function confirmReceipt() {
     await runStep("proof", async () => {
       const activeBinding = binding ?? (await createAssetBindingRequest());
       setBinding(activeBinding);
       const activeIntent = intent ?? (await createPaymentIntentRequest(activeBinding.bindingId));
+      if (!balanceCheck) {
+        const checked = await checkBalanceRequest(activeIntent.intentId);
+        setIntent(checked);
+        setBalanceCheck(checked.balanceCheck);
+      }
       const requested = activeIntent.status === "transfer_requested" ? activeIntent : await requestTransferRequest(activeIntent.intentId);
       setIntent(requested);
       setTransferRequest(requested.transfer ?? null);
@@ -149,6 +172,10 @@ export function PosVerifier() {
       const created = await createPaymentIntentRequest(activeBinding.bindingId);
       setIntent(created);
       setStatus((current) => ({ ...current, intent: "done" }));
+      const checked = await checkBalanceRequest(created.intentId);
+      setIntent(checked);
+      setBalanceCheck(checked.balanceCheck);
+      setStatus((current) => ({ ...current, balance: "done" }));
       const requested = await requestTransferRequest(created.intentId);
       setIntent(requested);
       setTransferRequest(requested.transfer ?? null);
@@ -225,6 +252,13 @@ export function PosVerifier() {
   async function requestTransferRequest(intentId: string) {
     return postJson<PaymentIntentResponse>(`/v1/payment-intents/${encodeURIComponent(intentId)}/transfer-requested`, {
       payerAddress: effectivePayer,
+    });
+  }
+
+  async function checkBalanceRequest(intentId: string) {
+    return postJson<BalanceCheckResponse>(`/v1/payment-intents/${encodeURIComponent(intentId)}/check-balance`, {
+      payerAddress: effectivePayer,
+      balance: form.walletBalance,
     });
   }
 
@@ -345,6 +379,9 @@ export function PosVerifier() {
             <Field label="Payer Address">
               <input className="input font-mono" value={form.payerAddress} onChange={(event) => updateField("payerAddress", event.target.value)} />
             </Field>
+            <Field label="Wallet Balance">
+              <input className="input font-mono" value={form.walletBalance} onChange={(event) => updateField("walletBalance", event.target.value)} />
+            </Field>
             <Field label="Receipt Tx ID">
               <input className="input font-mono" value={form.txid} onChange={(event) => updateField("txid", event.target.value)} />
             </Field>
@@ -406,6 +443,7 @@ export function PosVerifier() {
 
                 <div className="mt-6 grid gap-3">
                   <FlowButton icon={<ClipboardText size={20} aria-hidden />} label="Create PaymentIntent" status={status.intent} onClick={createIntent} />
+                  <FlowButton icon={<Wallet size={20} aria-hidden />} label="Check Balance" status={status.balance} onClick={checkBalance} />
                   <FlowButton icon={<CreditCard size={20} aria-hidden />} label="Request Transfer" status={status.transfer} onClick={requestTransfer} />
                   <FlowButton icon={<Receipt size={20} aria-hidden />} label="Confirm Receipt" status={status.proof} onClick={confirmReceipt} />
                 </div>
@@ -442,6 +480,7 @@ export function PosVerifier() {
 
                 <dl className="mt-6 grid gap-3 text-sm">
                   <ResultRow label="Intent" value={intent ? intent.status : "Not created"} />
+                  <ResultRow label="Balance" value={balanceCheck ? (balanceCheck.hasSufficientBalance ? "Sufficient" : `Short ${balanceCheck.shortfall}`) : "Not checked"} />
                   <ResultRow label="Transfer" value={transferRequest?.evm ? "ERC-20 calldata ready" : "Waiting"} />
                   <ResultRow label="Receiver" value={shortenHash(form.merchantVault, 8)} />
                   <ResultRow label="Proof" value={proof ? proof.status : "Not submitted"} />
@@ -466,6 +505,9 @@ export function PosVerifier() {
             </OutputPanel>
             <OutputPanel title="PaymentIntent">
               <pre className="output">{intent ? JSON.stringify(intent, null, 2) : "No PaymentIntent created yet."}</pre>
+            </OutputPanel>
+            <OutputPanel title="Balance Check">
+              <pre className="output">{balanceCheck ? JSON.stringify(balanceCheck, null, 2) : "No balance check created yet."}</pre>
             </OutputPanel>
             <OutputPanel title="Transfer Request">
               <pre className="output">{transferRequest ? JSON.stringify(transferRequest, null, 2) : "No transfer request created yet."}</pre>

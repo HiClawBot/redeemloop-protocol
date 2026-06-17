@@ -57,8 +57,11 @@ RedeemLoop Voucher
 对 EVM ERC-20 资产，前端调用：
 
 ```http
+POST /v1/payment-intents/:intentId/check-balance
 POST /v1/payment-intents/:intentId/transfer-requested
 ```
+
+`check-balance` 返回 `balanceOf(payer)` call request。前端可以用钱包/RPC 读取余额，也可以把已读取的余额传给 API，由 API 判断是否满足 `requiredAmount`。
 
 响应中的 `transfer.evm.transaction` 可以直接传给 EVM 钱包：
 

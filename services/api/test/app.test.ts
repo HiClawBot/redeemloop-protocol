@@ -112,6 +112,35 @@ describe("RedeemLoop API relayer prototype", () => {
     });
     const intentId = intentResponse.json().intentId as string;
 
+    const balanceResponse = await app.inject({
+      method: "POST",
+      url: `/v1/payment-intents/${intentId}/check-balance`,
+      payload: {
+        payerAddress: user.address,
+        balance: "1",
+      },
+    });
+    expect(balanceResponse.statusCode).toBe(200);
+    expect(balanceResponse.json()).toMatchObject({
+      status: "asset_selected",
+      payerAddress: user.address,
+      balanceCheck: {
+        chainNamespace: "eip155",
+        assetType: "erc20",
+        contract: token,
+        requiredAmount: "1",
+        providedBalance: "1",
+        hasSufficientBalance: true,
+        shortfall: "0",
+        call: {
+          to: token,
+          functionName: "balanceOf",
+          args: [user.address],
+        },
+      },
+    });
+    expect(balanceResponse.json().balanceCheck.call.data).toMatch(/^0x70a08231/);
+
     const transferResponse = await app.inject({
       method: "POST",
       url: `/v1/payment-intents/${intentId}/transfer-requested`,
@@ -140,6 +169,34 @@ describe("RedeemLoop API relayer prototype", () => {
       },
     });
     expect(transferResponse.json().transfer.evm.transaction.data).toMatch(/^0xa9059cbb/);
+
+    const shortIntentResponse = await app.inject({
+      method: "POST",
+      url: "/v1/payment-intents",
+      payload: {
+        bindingId: "bind_coffee",
+        orderId: "43",
+        channel: "checkout",
+        skuLines: [{ sku: "coffee-cup", quantity: 1 }],
+      },
+    });
+    const shortIntentId = shortIntentResponse.json().intentId as string;
+    const shortBalanceResponse = await app.inject({
+      method: "POST",
+      url: `/v1/payment-intents/${shortIntentId}/check-balance`,
+      payload: {
+        payerAddress: user.address,
+        balance: "0",
+      },
+    });
+    expect(shortBalanceResponse.statusCode).toBe(200);
+    expect(shortBalanceResponse.json()).toMatchObject({
+      status: "wallet_connected",
+      balanceCheck: {
+        hasSufficientBalance: false,
+        shortfall: "1",
+      },
+    });
 
     const proofResponse = await app.inject({
       method: "POST",

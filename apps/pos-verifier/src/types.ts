@@ -88,6 +88,27 @@ export interface PaymentIntentResponse {
   };
 }
 
+export interface BalanceCheckResponse extends PaymentIntentResponse {
+  balanceCheck: {
+    chainNamespace: "eip155";
+    chainId: number;
+    assetType: "erc20";
+    account: Address;
+    contract: Address;
+    requiredAmount: string;
+    call: {
+      chainId: number;
+      to: Address;
+      data: `0x${string}`;
+      functionName: "balanceOf";
+      args: [Address];
+    };
+    providedBalance?: string;
+    hasSufficientBalance?: boolean;
+    shortfall?: string;
+  };
+}
+
 export interface SettlementProofResponse {
   proofId: string;
   intentId: string;

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  buildErc20BalanceCheckRequest,
   buildErc20TransferRequest,
   createErc20PaymentProof,
   type EvmAdapter,
@@ -67,6 +68,36 @@ describe("adapter contracts", () => {
       assetType: "erc20",
       amount: "1",
     });
+  });
+
+  it("builds ERC-20 balanceOf calldata and evaluates required voucher amount", () => {
+    const asset: VoucherAssetDescriptor = {
+      chainNamespace: "eip155",
+      chainId: 8453,
+      assetType: "erc20",
+      assetId: "eip155:8453/erc20:0x0000000000000000000000000000000000000def",
+      contract: "0x0000000000000000000000000000000000000def",
+      requiredAmount: "2",
+      termsHash: "terms",
+    };
+
+    const enough = buildErc20BalanceCheckRequest({
+      account: "0x0000000000000000000000000000000000000123",
+      asset,
+      balance: "3",
+    });
+    expect(enough.call.data.startsWith("0x70a08231")).toBe(true);
+    expect(enough.call.to.toLowerCase()).toBe(asset.contract);
+    expect(enough.hasSufficientBalance).toBe(true);
+    expect(enough.shortfall).toBe("0");
+
+    const short = buildErc20BalanceCheckRequest({
+      account: "0x0000000000000000000000000000000000000123",
+      asset,
+      balance: "1",
+    });
+    expect(short.hasSufficientBalance).toBe(false);
+    expect(short.shortfall).toBe("1");
   });
 
   it("keeps Bitcoin and Fractal transfer support behind PSBT/indexer interfaces", async () => {
