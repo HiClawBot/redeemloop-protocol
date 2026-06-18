@@ -14,6 +14,18 @@ export interface CommerceAdapterConfig {
   woocommerceWebhookSecret?: string;
 }
 
+export interface ShopifyAdapterDiagnostics {
+  provider: "shopify";
+  status: "ok" | "dry_run" | "missing_config";
+  dryRun: boolean;
+  apiVersion: string;
+  shopDomainConfigured: boolean;
+  adminAccessTokenConfigured: boolean;
+  webhookSecretConfigured: boolean;
+  adminGraphqlUrl?: string;
+  missing: string[];
+}
+
 export interface CommerceMarkAsPaidInput {
   provider: CommerceProvider;
   orderId: string;
@@ -108,7 +120,26 @@ export function extractShopifyOrderId(payload: unknown): string {
   const body = payload as Record<string, unknown>;
   const orderGid = optionalString(body.admin_graphql_api_id, "admin_graphql_api_id");
   if (orderGid) return orderGid;
-  return requireString(body.id, "orderId");
+  const id = requireString(body.id, "orderId");
+  return toShopifyOrderGid(id);
+}
+
+export function getShopifyAdapterDiagnostics(config: CommerceAdapterConfig): ShopifyAdapterDiagnostics {
+  const missing = [
+    config.shopifyShopDomain ? "" : "SHOPIFY_SHOP_DOMAIN",
+    config.shopifyAdminAccessToken ? "" : "SHOPIFY_ADMIN_ACCESS_TOKEN",
+  ].filter(Boolean);
+  return {
+    provider: "shopify",
+    status: config.dryRun ? "dry_run" : missing.length ? "missing_config" : "ok",
+    dryRun: config.dryRun,
+    apiVersion: config.shopifyApiVersion,
+    shopDomainConfigured: Boolean(config.shopifyShopDomain),
+    adminAccessTokenConfigured: Boolean(config.shopifyAdminAccessToken),
+    webhookSecretConfigured: Boolean(config.shopifyWebhookSecret),
+    adminGraphqlUrl: config.shopifyShopDomain ? shopifyAdminGraphqlUrl(config.shopifyShopDomain, config.shopifyApiVersion) : undefined,
+    missing,
+  };
 }
 
 export function extractWooCommerceOrderId(payload: unknown): string {
@@ -123,7 +154,7 @@ function markShopifyOrderAsPaid(
   config: CommerceAdapterConfig,
 ): Promise<CommerceMarkAsPaidResult> {
   const shopDomain = config.shopifyShopDomain ?? "example.myshopify.com";
-  const url = `https://${shopDomain}/admin/api/${config.shopifyApiVersion}/graphql.json`;
+  const url = shopifyAdminGraphqlUrl(shopDomain, config.shopifyApiVersion);
   const body = {
     query: `
       mutation orderMarkAsPaid($input: OrderMarkAsPaidInput!) {
@@ -153,7 +184,7 @@ function markShopifyOrderAsPaid(
     body,
   };
 
-  if (config.dryRun || !config.shopifyShopDomain || !config.shopifyAdminAccessToken) {
+  if (config.dryRun) {
     return Promise.resolve({
       provider: "shopify",
       orderId: input.orderId,
@@ -163,17 +194,30 @@ function markShopifyOrderAsPaid(
     });
   }
 
+  const diagnostics = getShopifyAdapterDiagnostics(config);
+  if (diagnostics.status === "missing_config") {
+    throw new Error(`Shopify Admin API config is incomplete: ${diagnostics.missing.join(", ")}`);
+  }
+
+  const accessToken = config.shopifyAdminAccessToken;
+  if (!accessToken) {
+    throw new Error("Shopify Admin API config is incomplete: SHOPIFY_ADMIN_ACCESS_TOKEN");
+  }
+
   return postJson(url, body, {
     "Content-Type": "application/json",
-    "X-Shopify-Access-Token": config.shopifyAdminAccessToken,
-  }).then((response) => ({
-    provider: "shopify" as const,
-    orderId: input.orderId,
-    markedPaid: true,
-    dryRun: false,
-    request,
-    response,
-  }));
+    "X-Shopify-Access-Token": accessToken,
+  }).then((response) => {
+    assertShopifyMarkAsPaidAccepted(response);
+    return {
+      provider: "shopify" as const,
+      orderId: input.orderId,
+      markedPaid: true,
+      dryRun: false,
+      request,
+      response,
+    };
+  });
 }
 
 function markWooCommerceOrderAsPaid(
@@ -264,9 +308,32 @@ async function postJson(url: string, body: unknown, headers: Record<string, stri
   });
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(`Commerce adapter request failed with ${response.status}`);
+    throw new Error(`Commerce adapter request failed with ${response.status}: ${JSON.stringify(payload)}`);
   }
   return payload;
+}
+
+function assertShopifyMarkAsPaidAccepted(response: unknown): void {
+  const body = recordOf(response);
+  const topLevelErrors = arrayOfRecords(body.errors)
+    .map((error) => stringOf(error.message) ?? JSON.stringify(error))
+    .filter(Boolean);
+  if (topLevelErrors.length) {
+    throw new Error(`Shopify Admin GraphQL error: ${topLevelErrors.join("; ")}`);
+  }
+
+  const data = recordOf(body.data);
+  const result = recordOf(data.orderMarkAsPaid);
+  const userErrors = arrayOfRecords(result.userErrors)
+    .map((error) => {
+      const field = Array.isArray(error.field) ? error.field.join(".") : stringOf(error.field);
+      const message = stringOf(error.message) ?? JSON.stringify(error);
+      return field ? `${field}: ${message}` : message;
+    })
+    .filter(Boolean);
+  if (userErrors.length) {
+    throw new Error(`Shopify orderMarkAsPaid user error: ${userErrors.join("; ")}`);
+  }
 }
 
 function toShopifyOrderGid(orderId: string): string {
@@ -274,6 +341,22 @@ function toShopifyOrderGid(orderId: string): string {
   return `gid://shopify/Order/${orderId}`;
 }
 
+function shopifyAdminGraphqlUrl(shopDomain: string, apiVersion: string): string {
+  return `https://${shopDomain}/admin/api/${apiVersion}/graphql.json`;
+}
+
 function normalizeStoreUrl(url: string): string {
   return url.replace(/\/+$/, "");
+}
+
+function recordOf(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+}
+
+function arrayOfRecords(value: unknown): Record<string, unknown>[] {
+  return Array.isArray(value) ? value.map(recordOf) : [];
+}
+
+function stringOf(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }

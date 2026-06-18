@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -15,6 +15,10 @@ const user = privateKeyToAccount(userPrivateKey);
 const attacker = privateKeyToAccount("0x8b3a350cf5c34c9194ca3a545d121d6d7c91f113f8cb6f7e4e44bb9f33d763fd");
 const operator = getAddress("0x0000000000000000000000000000000000000abc");
 const token = getAddress("0x0000000000000000000000000000000000000def");
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe("RedeemLoop API relayer prototype", () => {
   it("runs the v0.2 Asset Binding, PaymentIntent, receipt confirmation, and mark-as-paid flow", async () => {
@@ -1513,6 +1517,124 @@ describe("RedeemLoop API relayer prototype", () => {
       method: "PUT",
       url: "https://merchant.example/wp-json/wc/v3/orders/42",
     });
+
+    await app.close();
+  });
+
+  it("reports Shopify Admin API configuration diagnostics", async () => {
+    const app = await createApp({
+      dryRun: false,
+      shopifyShopDomain: "redeemloop-test.myshopify.com",
+      shopifyAdminAccessToken: "shpat_test",
+      shopifyApiVersion: "2026-04",
+      shopifyWebhookSecret: "shopify-secret",
+    });
+
+    const response = await app.inject({
+      method: "GET",
+      url: "/v1/diagnostics/shopify",
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      diagnostics: {
+        provider: "shopify",
+        status: "ok",
+        dryRun: false,
+        shopDomainConfigured: true,
+        adminAccessTokenConfigured: true,
+        webhookSecretConfigured: true,
+        adminGraphqlUrl: "https://redeemloop-test.myshopify.com/admin/api/2026-04/graphql.json",
+        missing: [],
+      },
+    });
+    expect(JSON.stringify(response.json())).not.toContain("shpat_test");
+
+    await app.close();
+  });
+
+  it("marks Shopify orders paid through a mocked Admin API response", async () => {
+    const fetchMock = vi.fn(async (_url: string | URL | Request, _init?: RequestInit) => new Response(JSON.stringify({
+      data: {
+        orderMarkAsPaid: {
+          userErrors: [],
+          order: {
+            id: "gid://shopify/Order/148977776",
+            name: "#1001",
+            displayFinancialStatus: "PAID",
+          },
+        },
+      },
+    }), { status: 200, headers: { "content-type": "application/json" } }));
+    vi.stubGlobal("fetch", fetchMock);
+    const app = await createApp({
+      chainId: 31337,
+      dryRun: false,
+      shopifyShopDomain: "redeemloop-test.myshopify.com",
+      shopifyAdminAccessToken: "shpat_test",
+      shopifyApiVersion: "2026-04",
+    });
+    await saveReceiver(app);
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/v1/commerce/confirm",
+      payload: commercePayload({ provider: "shopify", orderId: "148977776" }),
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      provider: "shopify",
+      status: "paid",
+      dryRun: false,
+      commerce: {
+        provider: "shopify",
+        markedPaid: true,
+        dryRun: false,
+      },
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://redeemloop-test.myshopify.com/admin/api/2026-04/graphql.json",
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          "X-Shopify-Access-Token": "shpat_test",
+        }),
+      }),
+    );
+    const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    expect(JSON.parse(String(requestInit.body)).variables.input.id).toBe("gid://shopify/Order/148977776");
+
+    await app.close();
+  });
+
+  it("surfaces Shopify Admin API user errors", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
+      data: {
+        orderMarkAsPaid: {
+          userErrors: [{ field: ["id"], message: "Order cannot be marked as paid" }],
+          order: null,
+        },
+      },
+    }), { status: 200, headers: { "content-type": "application/json" } })));
+    const app = await createApp({
+      chainId: 31337,
+      dryRun: false,
+      shopifyShopDomain: "redeemloop-test.myshopify.com",
+      shopifyAdminAccessToken: "shpat_test",
+      shopifyApiVersion: "2026-04",
+    });
+    await saveReceiver(app);
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/v1/commerce/confirm",
+      payload: commercePayload({ provider: "shopify", orderId: "148977776" }),
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json().error).toContain("Shopify orderMarkAsPaid user error");
+    expect(response.json().error).toContain("Order cannot be marked as paid");
 
     await app.close();
   });

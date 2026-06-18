@@ -34,6 +34,7 @@ import type {
   RuneSettlementRecheckResponse,
   SelectAssetInput,
   SetReceivingAddressInput,
+  ShopifyDiagnosticsResponse,
   SettlementProofResponse,
   SettlementRecheckResponse,
   TestWebhookEndpointResponse,
@@ -231,6 +232,10 @@ export class RedeemLoopClient {
 
   async getEvmRpcDiagnostics(): Promise<EvmRpcDiagnosticsResponse> {
     return this.request("/v1/diagnostics/evm-rpc");
+  }
+
+  async getShopifyDiagnostics(): Promise<ShopifyDiagnosticsResponse> {
+    return this.request("/v1/diagnostics/shopify");
   }
 
   async createWebhookEndpoint(input: CreateWebhookEndpointInput): Promise<WebhookEndpoint> {

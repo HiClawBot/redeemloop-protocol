@@ -13,8 +13,9 @@ This roadmap is the public product direction after the v0.2 Phase 0 realignment.
 - Phase 0 hardening: vault ownership challenge, PaymentIntent expiration cleanup, audit logs, and webhook drain operations.
 - Merchant admin pilot console for vaults, bindings, PaymentIntents, webhooks, deliveries, and audit logs.
 - WooCommerce pilot improvements with admin diagnostics and SKU-to-binding mapping.
+- Shopify private-app mark-as-paid alpha with Admin API diagnostics and mocked GraphQL tests.
 
-Current status: v0.5.0 provides EVM pilot-certification tooling, Phase 0 hardening, a local merchant operations console, and WooCommerce pilot mapping. Funded wallet runs are still required before claiming a specific wallet/network pair is production-certified.
+Current status: v0.5.1 provides EVM pilot-certification tooling, Phase 0 hardening, a local merchant operations console, WooCommerce pilot mapping, and Shopify private-app mark-as-paid alpha support. Funded wallet runs and live commerce-store certification are still required before production-certified claims.
 
 ## Phase 1
 

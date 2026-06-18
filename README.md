@@ -40,6 +40,7 @@ This release fixes the first public implementation scope:
 - Webhook event outbox, signed delivery attempts, retry state, dead-letter status, and replay API.
 - Phase 0 hardening with signed EVM vault ownership challenge, PaymentIntent expiration cleanup, audit logs, and webhook drain worker endpoint.
 - Merchant Admin pilot console with vaults, bindings, PaymentIntents, webhooks, delivery records, audit logs, and pilot seed data.
+- Shopify private-app mark-as-paid alpha with configuration diagnostics, mocked Admin API tests, and GraphQL user-error handling.
 - Public Merchant Sandbox with Docker Compose, `.env.example`, environment checks, and API reference docs.
 - Bitcoin Rune Wallet/Indexer Beta adapter surface with UniSat `sendRunes`, Xverse `runes_transfer`, Xverse API-backed Rune balance/UTXO/activity verification, API-level Rune settlement recheck, and a clearly labeled PSBT request fixture boundary.
 - Merchant receiving address / vault confirmation model.
@@ -300,6 +301,7 @@ manual_review
 - [EVM Multi-Chain Wallet Beta](docs/EVM_MULTI_CHAIN_WALLET.md)
 - [EVM Live Certification Runbook](docs/EVM_LIVE_CERTIFICATION.md)
 - [Merchant Admin and WooCommerce Pilot](docs/MERCHANT_ADMIN_WOOCOMMERCE_PILOT.md)
+- [Shopify Mark-as-Paid Adapter Alpha](docs/SHOPIFY_ADAPTER_ALPHA.md)
 - [Bitcoin Rune Alpha](docs/BITCOIN_RUNE_ALPHA.md)
 - [Bitcoin Rune Real-Usability Plan](docs/BITCOIN_RUNE_REAL_USABILITY.md)
 - [API Reference](docs/API_REFERENCE.md)
@@ -350,6 +352,7 @@ PaymentIntent
 - Webhook event outbox、签名投递、重试状态、dead-letter 状态和 replay API。
 - Phase 0 hardening：EVM vault ownership 签名 challenge、PaymentIntent 过期清理、audit logs 和 webhook drain worker endpoint。
 - Merchant Admin pilot console：支持 vaults、bindings、PaymentIntents、webhooks、delivery records、audit logs 和 pilot seed data。
+- Shopify private-app mark-as-paid alpha：包含配置诊断、mocked Admin API tests 和 GraphQL user-error 处理。
 - Public Merchant Sandbox：Docker Compose、`.env.example`、环境检查和 API reference 文档。
 - Bitcoin Rune Wallet/Indexer Beta adapter surface：UniSat `sendRunes`、Xverse `runes_transfer`、基于 Xverse API 的 Rune balance/UTXO/activity 校验、API-level Rune settlement recheck，以及明确标注的 PSBT request fixture 边界。
 - 商户收券地址 / vault 确认模型。
@@ -515,6 +518,7 @@ manual_review
 - [EVM Multi-Chain Wallet Beta](docs/EVM_MULTI_CHAIN_WALLET.md)
 - [EVM Live Certification Runbook](docs/EVM_LIVE_CERTIFICATION.md)
 - [Merchant Admin and WooCommerce Pilot](docs/MERCHANT_ADMIN_WOOCOMMERCE_PILOT.md)
+- [Shopify Mark-as-Paid Adapter Alpha](docs/SHOPIFY_ADAPTER_ALPHA.md)
 - [Bitcoin Rune Alpha](docs/BITCOIN_RUNE_ALPHA.md)
 - [Bitcoin Rune Real-Usability Plan](docs/BITCOIN_RUNE_REAL_USABILITY.md)
 - [API Reference](docs/API_REFERENCE.md)

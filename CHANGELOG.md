@@ -4,6 +4,24 @@
 
 No unreleased changes yet.
 
+## v0.5.1 - 2026-06-18
+
+### Added
+
+- Shopify configuration diagnostics at `GET /v1/diagnostics/shopify`.
+- SDK `getShopifyDiagnostics()`.
+- Shopify Admin GraphQL success and user-error handling with mocked integration tests.
+- Shopify order ID normalization to `gid://shopify/Order/...`.
+- Bilingual Shopify adapter alpha guide.
+
+### 中文说明
+
+- 新增 Shopify 配置诊断：`GET /v1/diagnostics/shopify`。
+- SDK 新增 `getShopifyDiagnostics()`。
+- Shopify Admin GraphQL 成功响应和 user-error 处理，并加入 mocked integration tests。
+- Shopify order ID 规范化为 `gid://shopify/Order/...`。
+- 新增双语 Shopify adapter alpha guide。
+
 ## v0.5.0 - 2026-06-18
 
 ### Added

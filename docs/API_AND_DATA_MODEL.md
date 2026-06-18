@@ -1,4 +1,4 @@
-# RedeemLoop API 与数据模型 v0.5.0
+# RedeemLoop API 与数据模型 v0.5.1
 
 ## 1. REST API
 
@@ -148,11 +148,13 @@ POST /v1/webhook-deliveries/:deliveryId/replay
 
 ```http
 GET /v1/diagnostics/evm-rpc
+GET /v1/diagnostics/shopify
 GET /v1/audit-logs?merchantId=...
 ```
 
 该接口按 ETH/BSC/Polygon/Arbitrum 返回 RPC 配置状态、来源、origin、最新块高和延迟，用于 live wallet pilot run 前检查 `EVM_RPC_URLS`。接口不会返回完整 RPC URL。
 `GET /v1/audit-logs` 返回 merchant-scoped 审计记录，覆盖 vault verification、PaymentIntent 状态变化、settlement advancement 和过期清理。
+`GET /v1/diagnostics/shopify` 返回 Shopify private-app Admin API 配置状态，包括 shop domain、Admin API token、webhook secret 和 API version 是否已配置；接口不会返回 token 明文。
 
 `payment_intent.paid` events are written to the sandbox outbox when settlement proof or trusted EVM recheck moves a `PaymentIntent` to `paid`. Delivery attempts are signed with `X-RedeemLoop-Event-Id`, `X-RedeemLoop-Delivery-Id`, `X-RedeemLoop-Timestamp`, `X-RedeemLoop-Nonce`, and `X-RedeemLoop-Signature`.
 

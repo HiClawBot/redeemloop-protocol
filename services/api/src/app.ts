@@ -57,6 +57,7 @@ import {
   type CommerceProvider,
   extractShopifyOrderId,
   extractWooCommerceOrderId,
+  getShopifyAdapterDiagnostics,
   markCommerceOrderAsPaid,
   normalizeProvider,
   optionalString,
@@ -450,6 +451,11 @@ export async function createApp(config: Partial<ApiConfig> = {}): Promise<Fastif
   app.get("/v1/diagnostics/evm-rpc", async () => ({
     checkedAt: new Date().toISOString(),
     chains: await Promise.all(redeemLoopEvmChains.map((chain) => checkEvmRpcDiagnostic(chain.chainId, chain.name, resolvedConfig))),
+  }));
+
+  app.get("/v1/diagnostics/shopify", async () => ({
+    checkedAt: new Date().toISOString(),
+    diagnostics: getShopifyAdapterDiagnostics(commerceAdapterConfig(resolvedConfig)),
   }));
 
   app.get("/v1/audit-logs", async (request) => {

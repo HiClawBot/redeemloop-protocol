@@ -272,6 +272,23 @@ export interface EvmRpcDiagnosticsResponse {
   chains: EvmRpcDiagnostic[];
 }
 
+export interface ShopifyAdapterDiagnostics {
+  provider: "shopify";
+  status: "ok" | "dry_run" | "missing_config";
+  dryRun: boolean;
+  apiVersion: string;
+  shopDomainConfigured: boolean;
+  adminAccessTokenConfigured: boolean;
+  webhookSecretConfigured: boolean;
+  adminGraphqlUrl?: string;
+  missing: string[];
+}
+
+export interface ShopifyDiagnosticsResponse {
+  checkedAt: string;
+  diagnostics: ShopifyAdapterDiagnostics;
+}
+
 export interface WebhookEndpoint {
   id: string;
   merchantId: string;

@@ -1,4 +1,4 @@
-# RedeemLoop API Reference v0.5.0
+# RedeemLoop API Reference v0.5.1
 
 ## English
 
@@ -95,9 +95,11 @@ v0.4.5 records audit entries for merchant vault creation, vault challenge creati
 GET /health
 GET /v1/config
 GET /v1/diagnostics/evm-rpc
+GET /v1/diagnostics/shopify
 ```
 
 `GET /v1/diagnostics/evm-rpc` reports ETH/BSC/Polygon/Arbitrum RPC status, source, origin, latest block height, and latency. It does not return the full RPC URL to avoid leaking provider API keys.
+`GET /v1/diagnostics/shopify` reports private-app Admin API readiness without returning the Admin access token.
 
 ## 中文
 
@@ -194,6 +196,8 @@ v0.4.5 会记录 merchant vault 创建、vault challenge 创建、vault 签名�
 GET /health
 GET /v1/config
 GET /v1/diagnostics/evm-rpc
+GET /v1/diagnostics/shopify
 ```
 
 `GET /v1/diagnostics/evm-rpc` 会返回 ETH/BSC/Polygon/Arbitrum 的 RPC 状态、来源、origin、最新块高和延迟。接口不会返回完整 RPC URL，以避免泄漏 provider API key。
+`GET /v1/diagnostics/shopify` 会返回 private-app Admin API 准备状态，但不会返回 Admin access token。
