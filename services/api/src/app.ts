@@ -81,6 +81,7 @@ import { createJsonFilePersistence, type RedeemLoopApiSnapshot } from "./persist
 interface ApiConfig {
   chainId: number;
   rpcUrl?: string;
+  evmRpcUrls: Record<number, string>;
   relayerPrivateKey?: Hex;
   dryRun: boolean;
   embedAllowedOrigins: string[];
@@ -248,6 +249,7 @@ export async function createApp(config: Partial<ApiConfig> = {}): Promise<Fastif
   const resolvedConfig: ApiConfig = {
     chainId: normalizeChainId(config.chainId ?? process.env.CHAIN_ID ?? 31337),
     rpcUrl: config.rpcUrl ?? process.env.RPC_URL,
+    evmRpcUrls: parseEvmRpcUrls(config.evmRpcUrls ?? process.env.EVM_RPC_URLS),
     relayerPrivateKey: config.relayerPrivateKey ?? (process.env.RELAYER_PRIVATE_KEY as Hex | undefined),
     dryRun: config.dryRun ?? process.env.RELAYER_DRY_RUN !== "false",
     embedAllowedOrigins: parseAllowedOrigins(
@@ -1588,6 +1590,27 @@ function parseMerchantApiKeys(input: string | Record<string, string> | undefined
   );
 }
 
+function parseEvmRpcUrls(input: string | Record<number, string> | Record<string, string> | undefined): Record<number, string> {
+  if (!input) return {};
+  if (typeof input !== "string") {
+    return Object.fromEntries(Object.entries(input).map(([chainId, rpcUrl]) => [normalizeChainId(chainId), requireString(rpcUrl, `evmRpcUrls.${chainId}`)]));
+  }
+  const trimmed = input.trim();
+  if (!trimmed) return {};
+  if (trimmed.startsWith("{")) return parseEvmRpcUrls(JSON.parse(trimmed) as Record<string, string>);
+  const result: Record<number, string> = {};
+  for (const entry of trimmed.split(",")) {
+    if (!entry.trim()) continue;
+    const separator = entry.indexOf(":");
+    if (separator <= 0) throw new Error("EVM_RPC_URLS entries must use chainId:rpcUrl");
+    const chainId = normalizeChainId(entry.slice(0, separator));
+    const rpcUrl = entry.slice(separator + 1).trim();
+    if (!rpcUrl) throw new Error(`EVM_RPC_URLS.${chainId} is required`);
+    result[chainId] = rpcUrl;
+  }
+  return result;
+}
+
 function hasMerchantApiAccess(authorization: string | string[] | undefined, merchantId: string, apiKeys: Record<string, string>): boolean {
   const token = bearerToken(authorization);
   if (!token) return false;
@@ -1897,9 +1920,10 @@ async function fetchEvmReceipt(
   if (config.evmReceiptProvider) {
     return config.evmReceiptProvider({ txid, chainId, rpcUrl: config.rpcUrl });
   }
-  if (!config.rpcUrl) throw new Error("RPC_URL is required for trusted EVM settlement recheck");
+  const rpcUrl = config.evmRpcUrls[chainId] ?? config.rpcUrl;
+  if (!rpcUrl) throw new Error("RPC_URL or EVM_RPC_URLS entry is required for trusted EVM settlement recheck");
   const publicClient = createPublicClient({
-    transport: http(config.rpcUrl),
+    transport: http(rpcUrl),
   });
   const [receipt, currentBlockNumber] = await Promise.all([
     publicClient.getTransactionReceipt({ hash: txid }),

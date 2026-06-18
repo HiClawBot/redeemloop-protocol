@@ -8,6 +8,7 @@ This roadmap is the public product direction after the v0.2 Phase 0 realignment.
 - Merchant receiving address.
 - Shopify / WooCommerce mark-as-paid webhook and adapter surface.
 - Asset Binding, Voucher Tender, PaymentIntent, receipt confirmation, and mark-as-paid loop.
+- ETH, BSC, Polygon PoS, and Arbitrum wallet send support through EIP-1193 injected wallets.
 
 ## Phase 1
 

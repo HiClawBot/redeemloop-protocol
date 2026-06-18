@@ -31,6 +31,7 @@ PaymentIntent
 - PaymentIntent 状态机与 API。
 - EVM ERC-20 钱包支付按钮所需的 transfer calldata。
 - EVM ERC-20 持券检测所需的 balanceOf call request。
+- EVM Multi-Chain Wallet Beta：通过注入式 EIP-1193 钱包支持 Ethereum、BNB Smart Chain、Polygon PoS 和 Arbitrum One。
 - Merchant Embed Alpha：SDK 方法、React Pay Button、script-tag widget 和 demo store 页面。
 - 文件持久化 sandbox 和商户级 API key 校验，适用于本地和 pilot 环境。
 - 基于 transaction receipt 的可信 EVM ERC-20 settlement recheck。
@@ -293,6 +294,7 @@ manual_review
 - [协议规格](docs/PROTOCOL_SPEC.md)
 - [集成指南](docs/INTEGRATION_GUIDE.md)
 - [Public Merchant Sandbox](docs/PUBLIC_SANDBOX.md)
+- [EVM Multi-Chain Wallet Beta](docs/EVM_MULTI_CHAIN_WALLET.md)
 - [Bitcoin Rune Alpha](docs/BITCOIN_RUNE_ALPHA.md)
 - [Bitcoin Rune Real-Usability Plan](docs/BITCOIN_RUNE_REAL_USABILITY.md)
 - [API Reference](docs/API_REFERENCE.md)

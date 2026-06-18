@@ -1,4 +1,4 @@
-# RedeemLoop API Reference v0.4.2
+# RedeemLoop API Reference v0.4.3
 
 ## English
 
@@ -48,6 +48,8 @@ POST /v1/payment-intents/:intentId/cancel
 ```
 
 For Bitcoin Rune assets, `transfer-requested` accepts `network`, `feeRate`, `changeAddress`, `payerPublicKey`, and `runeUtxos`, then returns `transfer.bitcoin.psbtBase64`. This API response remains a PSBT fixture boundary. Real wallet flows should prefer the adapter-level UniSat `sendRunes` or Xverse `runes_transfer` path, then submit indexer-backed proof.
+
+For EVM ERC-20 assets, `transfer-requested` returns `transfer.evm.transaction` for wallet sending. Trusted EVM receipt recheck uses `RPC_URL` for one-chain deployments or `EVM_RPC_URLS` for chain-specific RPC routing across Ethereum, BSC, Polygon, and Arbitrum.
 
 ### Settlement
 
@@ -130,6 +132,8 @@ POST /v1/payment-intents/:intentId/cancel
 ```
 
 对于 Bitcoin Rune 资产，`transfer-requested` 可接收 `network`、`feeRate`、`changeAddress`、`payerPublicKey` 和 `runeUtxos`，并返回 `transfer.bitcoin.psbtBase64`。该 API 响应仍是 PSBT fixture boundary。真实钱包流程应优先使用 adapter 层 UniSat `sendRunes` 或 Xverse `runes_transfer` 路径，然后提交 indexer-backed proof。
+
+对于 EVM ERC-20 资产，`transfer-requested` 会返回 `transfer.evm.transaction`，用于钱包发起交易。可信 EVM receipt recheck 在单链部署中使用 `RPC_URL`，在 Ethereum、BSC、Polygon、Arbitrum 多链部署中可使用 `EVM_RPC_URLS` 做按 chainId 的 RPC 路由。
 
 ### Settlement
 

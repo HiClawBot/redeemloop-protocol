@@ -1,3 +1,4 @@
+import { createEip1193EvmWalletAdapter, type Eip1193Provider } from "@redeemloop/adapters";
 import { RedeemLoopClient, type TransferRequestResponse } from "@redeemloop/sdk";
 
 export interface RedeemLoopWidgetOptions {
@@ -12,6 +13,9 @@ export interface RedeemLoopWidgetOptions {
   balance?: string;
   txid?: string;
   autoSubmitProof?: boolean;
+  autoSendEvmTransaction?: boolean;
+  autoRecheckEvmSettlement?: boolean;
+  switchEvmChain?: boolean;
   label?: string;
   workingLabel?: string;
   transferReadyLabel?: string;
@@ -68,13 +72,35 @@ export function mountRedeemLoopPayButton(element: HTMLElement, options: RedeemLo
       });
       dispatchWidgetEvent(element, "redeemloop:transfer", transferResponse.transfer);
 
-      if (options.txid) {
-        await client.markBroadcasted(intent.intentId, { txid: options.txid });
-        dispatchWidgetEvent(element, "redeemloop:broadcasted", { txid: options.txid });
+      let txid = options.txid;
+      if (options.autoSendEvmTransaction) {
+        if (!transferResponse.transfer.evm) throw new Error("EVM wallet send requires an EVM transfer request");
+        const provider = getInjectedEvmProvider();
+        if (!provider) throw new Error("No injected EVM wallet provider found");
+        txid = await createEip1193EvmWalletAdapter(provider).sendErc20Transfer(transferResponse.transfer.evm, {
+          from: options.payerAddress,
+          switchChain: options.switchEvmChain !== false,
+        });
+        dispatchWidgetEvent(element, "redeemloop:wallet_tx", { txid });
       }
 
-      if (options.autoSubmitProof && options.txid && options.payerAddress) {
-        const proof = await submitWidgetProof(client, transferResponse, options);
+      if (txid) {
+        await client.markBroadcasted(intent.intentId, { txid });
+        dispatchWidgetEvent(element, "redeemloop:broadcasted", { txid });
+      }
+
+      if (options.autoRecheckEvmSettlement && txid && options.payerAddress && transferResponse.transfer.evm) {
+        const proof = await client.recheckEvmSettlement(intent.intentId, {
+          txid,
+          from: options.payerAddress,
+        });
+        setButtonState(button, "paid", options.paidLabel ?? "Paid");
+        dispatchWidgetEvent(element, "redeemloop:paid", proof);
+        return;
+      }
+
+      if (options.autoSubmitProof && txid && options.payerAddress) {
+        const proof = await submitWidgetProof(client, transferResponse, options, txid);
         setButtonState(button, "paid", options.paidLabel ?? "Paid");
         dispatchWidgetEvent(element, "redeemloop:paid", proof);
         return;
@@ -130,6 +156,9 @@ export function readWidgetOptions(element: HTMLElement): RedeemLoopWidgetOptions
     balance: element.dataset.balance,
     txid: element.dataset.txid,
     autoSubmitProof: element.dataset.autoSubmitProof === "true",
+    autoSendEvmTransaction: element.dataset.autoSendEvmTransaction === "true",
+    autoRecheckEvmSettlement: element.dataset.autoRecheckEvmSettlement === "true",
+    switchEvmChain: element.dataset.switchEvmChain === undefined ? undefined : element.dataset.switchEvmChain !== "false",
     label: element.dataset.label,
     workingLabel: element.dataset.workingLabel,
     transferReadyLabel: element.dataset.transferReadyLabel,
@@ -142,14 +171,14 @@ if (typeof document !== "undefined") {
   queueMicrotask(() => autoMountRedeemLoopWidgets());
 }
 
-async function submitWidgetProof(client: RedeemLoopClient, transferResponse: TransferRequestResponse, options: RedeemLoopWidgetOptions) {
+async function submitWidgetProof(client: RedeemLoopClient, transferResponse: TransferRequestResponse, options: RedeemLoopWidgetOptions, txid: string) {
   const asset = transferResponse.selectedAsset ?? transferResponse.acceptedAssets[0];
   if (!asset) throw new Error("PaymentIntent has no accepted asset to submit proof for");
   return client.submitSettlementProof({
     intentId: transferResponse.intentId,
     chainNamespace: asset.chainNamespace,
     chainId: asset.chainId,
-    txid: options.txid!,
+    txid,
     from: options.payerAddress!,
     to: transferResponse.merchantVault,
     assetType: asset.assetType,
@@ -160,6 +189,11 @@ async function submitWidgetProof(client: RedeemLoopClient, transferResponse: Tra
     confirmations: 1,
     status: "confirmed",
   });
+}
+
+function getInjectedEvmProvider(): Eip1193Provider | undefined {
+  if (typeof globalThis === "undefined") return undefined;
+  return (globalThis as { ethereum?: Eip1193Provider }).ethereum;
 }
 
 function setButtonState(button: HTMLButtonElement, state: string, label: string): void {

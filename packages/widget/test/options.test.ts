@@ -15,6 +15,9 @@ describe("readWidgetOptions", () => {
         balance: "2",
         txid: "0x1234",
         autoSubmitProof: "true",
+        autoSendEvmTransaction: "true",
+        autoRecheckEvmSettlement: "true",
+        switchEvmChain: "false",
       },
     } as unknown as HTMLElement;
 
@@ -30,6 +33,9 @@ describe("readWidgetOptions", () => {
       balance: "2",
       txid: "0x1234",
       autoSubmitProof: true,
+      autoSendEvmTransaction: true,
+      autoRecheckEvmSettlement: true,
+      switchEvmChain: false,
       label: undefined,
       workingLabel: undefined,
       transferReadyLabel: undefined,
@@ -49,6 +55,8 @@ describe("readWidgetOptions", () => {
     expect(readWidgetOptions(element)).toMatchObject({
       apiBaseUrl: "http://localhost:8787",
       intentId: "pi_existing",
+      autoSendEvmTransaction: false,
+      autoRecheckEvmSettlement: false,
     });
   });
 });

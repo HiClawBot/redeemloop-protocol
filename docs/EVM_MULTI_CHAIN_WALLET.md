@@ -1,0 +1,179 @@
+# EVM Multi-Chain Wallet Beta
+
+## English
+
+RedeemLoop v0.4.3 adds EVM multi-chain wallet beta support for ERC-20 voucher tender flows.
+
+Supported default chain catalog:
+
+| Network | Chain ID | Alias | Explorer |
+| --- | ---: | --- | --- |
+| Ethereum Mainnet | `1` | `eth`, `erc20` | `https://etherscan.io` |
+| BNB Smart Chain | `56` | `bsc`, `bnb`, `bep20` | `https://bscscan.com` |
+| Polygon PoS | `137` | `polygon`, `pol`, `matic` | `https://polygonscan.com` |
+| Arbitrum One | `42161` | `arbitrum`, `arb` | `https://arbiscan.io` |
+
+### Wallet Adapter
+
+`@redeemloop/adapters` exposes a zero-dependency EIP-1193 wallet adapter:
+
+```ts
+import { createEip1193EvmWalletAdapter } from "@redeemloop/adapters";
+
+const wallet = createEip1193EvmWalletAdapter(window.ethereum);
+await wallet.connect({ chainId: 56 });
+const txid = await wallet.sendErc20Transfer(transfer.evm);
+```
+
+The adapter uses:
+
+- `eth_requestAccounts` to request an account.
+- `eth_chainId` to read the active chain.
+- `wallet_switchEthereumChain` to switch networks.
+- `wallet_addEthereumChain` if the wallet does not know the target network.
+- `eth_sendTransaction` to send the ERC-20 `transfer(merchantVault, requiredAmount)` transaction.
+
+### React Pay Button
+
+```tsx
+<RedeemLoopPayButton
+  bindingId="bind_usdt_bsc"
+  orderId="ORDER-1001"
+  channel="checkout"
+  payerAddress="0xPayer"
+  autoSendEvmTransaction
+  autoRecheckEvmSettlement
+/>
+```
+
+`autoSendEvmTransaction` sends the wallet transaction after the API returns `transfer.evm`.
+`autoRecheckEvmSettlement` records the txid and calls trusted EVM receipt recheck.
+
+### Script Widget
+
+```html
+<div
+  data-redeemloop-pay-button
+  data-api-base-url="https://api.example.com"
+  data-api-key="merchant-api-key"
+  data-binding-id="bind_usdt_bsc"
+  data-order-id="ORDER-1001"
+  data-payer-address="0xPayer"
+  data-auto-send-evm-transaction="true"
+  data-auto-recheck-evm-settlement="true"
+></div>
+<script type="module" src="https://cdn.example.com/redeemloop-widget.js"></script>
+```
+
+### Backend Receipt Recheck
+
+For one-chain deployments, `RPC_URL` is enough:
+
+```bash
+RPC_URL=https://bsc.example
+EVM_MIN_CONFIRMATIONS=2
+```
+
+For multi-chain deployments, use `EVM_RPC_URLS`:
+
+```bash
+EVM_RPC_URLS='{"1":"https://eth.example","56":"https://bsc.example","137":"https://polygon.example","42161":"https://arb.example"}'
+EVM_MIN_CONFIRMATIONS=2
+```
+
+After the wallet returns a txid, RedeemLoop records it through `POST /v1/payment-intents/:intentId/broadcasted`, then calls `POST /v1/settlement/evm/recheck/:intentId`. The API selects the RPC URL by `asset.chainId`, verifies the ERC-20 `Transfer` log, and advances the `PaymentIntent` to `paid` when confirmations are sufficient.
+
+### AiFund Pay Reference
+
+`pay.aifund.com` is a useful reference for a zero-dependency `window.ethereum` wallet payment UX. It advertises wallet connect, QR payment, and payment verification across ERC20/BSC/ARB-style rails.
+
+Do not hard-depend on that hosted page until its HTTPS certificate is valid for `pay.aifund.com`. Treat it as product and UX reference, while RedeemLoop keeps its own adapter boundary and receipt verification.
+
+## 中文
+
+RedeemLoop v0.4.3 新增 EVM 多链钱包 beta 支持，用于 ERC-20 提货券支付流程。
+
+默认支持链目录：
+
+| 网络 | Chain ID | Alias | Explorer |
+| --- | ---: | --- | --- |
+| Ethereum Mainnet | `1` | `eth`, `erc20` | `https://etherscan.io` |
+| BNB Smart Chain | `56` | `bsc`, `bnb`, `bep20` | `https://bscscan.com` |
+| Polygon PoS | `137` | `polygon`, `pol`, `matic` | `https://polygonscan.com` |
+| Arbitrum One | `42161` | `arbitrum`, `arb` | `https://arbiscan.io` |
+
+### 钱包 Adapter
+
+`@redeemloop/adapters` 提供零依赖 EIP-1193 钱包 adapter：
+
+```ts
+import { createEip1193EvmWalletAdapter } from "@redeemloop/adapters";
+
+const wallet = createEip1193EvmWalletAdapter(window.ethereum);
+await wallet.connect({ chainId: 56 });
+const txid = await wallet.sendErc20Transfer(transfer.evm);
+```
+
+该 adapter 使用：
+
+- `eth_requestAccounts` 请求账户。
+- `eth_chainId` 读取当前链。
+- `wallet_switchEthereumChain` 切换网络。
+- 钱包未知目标网络时，用 `wallet_addEthereumChain` 添加网络。
+- 用 `eth_sendTransaction` 发送 ERC-20 `transfer(merchantVault, requiredAmount)` 交易。
+
+### React Pay Button
+
+```tsx
+<RedeemLoopPayButton
+  bindingId="bind_usdt_bsc"
+  orderId="ORDER-1001"
+  channel="checkout"
+  payerAddress="0xPayer"
+  autoSendEvmTransaction
+  autoRecheckEvmSettlement
+/>
+```
+
+`autoSendEvmTransaction` 会在 API 返回 `transfer.evm` 后发起钱包交易。
+`autoRecheckEvmSettlement` 会记录 txid，并调用可信 EVM receipt recheck。
+
+### Script Widget
+
+```html
+<div
+  data-redeemloop-pay-button
+  data-api-base-url="https://api.example.com"
+  data-api-key="merchant-api-key"
+  data-binding-id="bind_usdt_bsc"
+  data-order-id="ORDER-1001"
+  data-payer-address="0xPayer"
+  data-auto-send-evm-transaction="true"
+  data-auto-recheck-evm-settlement="true"
+></div>
+<script type="module" src="https://cdn.example.com/redeemloop-widget.js"></script>
+```
+
+### 后端 Receipt Recheck
+
+单链部署只需要 `RPC_URL`：
+
+```bash
+RPC_URL=https://bsc.example
+EVM_MIN_CONFIRMATIONS=2
+```
+
+多链部署使用 `EVM_RPC_URLS`：
+
+```bash
+EVM_RPC_URLS='{"1":"https://eth.example","56":"https://bsc.example","137":"https://polygon.example","42161":"https://arb.example"}'
+EVM_MIN_CONFIRMATIONS=2
+```
+
+钱包返回 txid 后，RedeemLoop 先通过 `POST /v1/payment-intents/:intentId/broadcasted` 记录 txid，再调用 `POST /v1/settlement/evm/recheck/:intentId`。API 会按 `asset.chainId` 选择 RPC URL，校验 ERC-20 `Transfer` log，并在确认数足够后把 `PaymentIntent` 推进到 `paid`。
+
+### AiFund Pay 参考
+
+`pay.aifund.com` 可以作为零依赖 `window.ethereum` 钱包支付 UX 参考。它展示了 wallet connect、QR payment，以及 ERC20/BSC/ARB 等路径的 payment verification 思路。
+
+在 `pay.aifund.com` 的 HTTPS 证书对该主机名有效之前，不应把它作为生产硬依赖。RedeemLoop 可以参考其产品和 UX 思路，但仍保留自己的 adapter 边界和 receipt verification。

@@ -1,4 +1,5 @@
 import type { RedeemLoopPaymentIntent, VoucherPaymentProof } from "@redeemloop/core";
+import { createEip1193EvmWalletAdapter, type Eip1193Provider } from "@redeemloop/adapters";
 import type {
   CheckBalanceResponse,
   CreatePaymentIntentInput,
@@ -11,7 +12,9 @@ export type RedeemLoopPayStep =
   | "creating_intent"
   | "checking_balance"
   | "requesting_transfer"
+  | "sending_wallet_transaction"
   | "broadcasting"
+  | "rechecking_settlement"
   | "submitting_proof"
   | "complete";
 
@@ -21,6 +24,10 @@ export interface RedeemLoopPayFlowInput extends CreatePaymentIntentInput {
   txid?: string;
   proofStatus?: VoucherPaymentProof["status"];
   autoSubmitProof?: boolean;
+  autoSendEvmTransaction?: boolean;
+  autoRecheckEvmSettlement?: boolean;
+  switchEvmChain?: boolean;
+  evmProvider?: Eip1193Provider;
 }
 
 export interface RedeemLoopPayFlowResult {
@@ -73,7 +80,21 @@ export async function runRedeemLoopPayFlow(
   intent = transferResponse;
 
   let broadcastedTxid: string | undefined;
-  if (input.txid) {
+  if (input.autoSendEvmTransaction) {
+    if (!transferResponse.transfer.evm) throw new Error("EVM wallet send requires an EVM transfer request");
+    const provider = input.evmProvider ?? getInjectedEvmProvider();
+    if (!provider) throw new Error("No injected EVM wallet provider found");
+    options.onStep?.("sending_wallet_transaction");
+    const wallet = createEip1193EvmWalletAdapter(provider);
+    const txid = await wallet.sendErc20Transfer(transferResponse.transfer.evm, {
+      from: input.payerAddress,
+      switchChain: input.switchEvmChain !== false,
+    });
+    options.onStep?.("broadcasting");
+    const broadcasted = await client.markBroadcasted(intent.intentId, { txid });
+    intent = broadcasted;
+    broadcastedTxid = broadcasted.txid;
+  } else if (input.txid) {
     options.onStep?.("broadcasting");
     const broadcasted = await client.markBroadcasted(intent.intentId, { txid: input.txid });
     intent = broadcasted;
@@ -81,7 +102,14 @@ export async function runRedeemLoopPayFlow(
   }
 
   let proof: SettlementProofResponse | undefined;
-  if (input.autoSubmitProof && input.txid && input.payerAddress) {
+  if (input.autoRecheckEvmSettlement && broadcastedTxid && input.payerAddress && transferResponse.transfer.evm) {
+    options.onStep?.("rechecking_settlement");
+    proof = await client.recheckEvmSettlement(intent.intentId, {
+      txid: broadcastedTxid,
+      from: input.payerAddress,
+    });
+    if (proof.paymentIntent) intent = proof.paymentIntent;
+  } else if (input.autoSubmitProof && broadcastedTxid && input.payerAddress) {
     const asset = intent.selectedAsset ?? intent.acceptedAssets[0];
     if (!asset) throw new Error("PaymentIntent has no accepted asset to submit proof for");
     options.onStep?.("submitting_proof");
@@ -89,7 +117,7 @@ export async function runRedeemLoopPayFlow(
       intentId: intent.intentId,
       chainNamespace: asset.chainNamespace,
       chainId: asset.chainId,
-      txid: input.txid,
+      txid: broadcastedTxid,
       from: input.payerAddress,
       to: intent.merchantVault,
       assetType: asset.assetType,
@@ -111,4 +139,9 @@ export async function runRedeemLoopPayFlow(
     broadcastedTxid,
     proof,
   };
+}
+
+function getInjectedEvmProvider(): Eip1193Provider | undefined {
+  if (typeof globalThis === "undefined") return undefined;
+  return (globalThis as { ethereum?: Eip1193Provider }).ethereum;
 }

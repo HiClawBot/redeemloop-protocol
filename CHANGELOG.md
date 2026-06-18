@@ -4,6 +4,35 @@
 
 No unreleased changes yet.
 
+## v0.4.3 - 2026-06-18
+
+### Added
+
+- EVM multi-chain wallet beta for Ethereum Mainnet, BNB Smart Chain, Polygon PoS, and Arbitrum One.
+- Default EVM chain catalog with chain IDs, hex IDs, native currencies, RPC URLs, explorers, and aliases.
+- EIP-1193 wallet adapter with `eth_requestAccounts`, `eth_chainId`, `wallet_switchEthereumChain`, `wallet_addEthereumChain`, and `eth_sendTransaction`.
+- React Pay Button options `autoSendEvmTransaction`, `autoRecheckEvmSettlement`, `switchEvmChain`, and `evmProvider`.
+- Script widget options `data-auto-send-evm-transaction`, `data-auto-recheck-evm-settlement`, and `data-switch-evm-chain`.
+- Chain-specific trusted EVM recheck routing through `EVM_RPC_URLS`.
+- Bilingual EVM multi-chain wallet integration guide.
+
+### Changed
+
+- EVM receipt recheck now selects a chain-specific RPC URL when `EVM_RPC_URLS` is configured.
+- React and widget tests now cover wallet-sent ERC-20 transfers and trusted EVM recheck.
+
+### 中文说明
+
+- 新增 EVM multi-chain wallet beta，覆盖 Ethereum Mainnet、BNB Smart Chain、Polygon PoS 和 Arbitrum One。
+- 新增默认 EVM chain catalog，包含 chain ID、hex chain ID、native currency、RPC URL、explorer 和 alias。
+- 新增 EIP-1193 钱包 adapter，覆盖 `eth_requestAccounts`、`eth_chainId`、`wallet_switchEthereumChain`、`wallet_addEthereumChain` 和 `eth_sendTransaction`。
+- React Pay Button 新增 `autoSendEvmTransaction`、`autoRecheckEvmSettlement`、`switchEvmChain` 和 `evmProvider`。
+- Script widget 新增 `data-auto-send-evm-transaction`、`data-auto-recheck-evm-settlement` 和 `data-switch-evm-chain`。
+- 可信 EVM recheck 支持通过 `EVM_RPC_URLS` 按 chainId 路由 RPC。
+- 新增双语 EVM 多链钱包集成指南。
+- EVM receipt recheck 在配置 `EVM_RPC_URLS` 后会选择对应 chainId 的 RPC URL。
+- React 和 widget 测试覆盖钱包发起 ERC-20 转账与可信 EVM recheck。
+
 ## v0.4.2 - 2026-06-18
 
 ### Added

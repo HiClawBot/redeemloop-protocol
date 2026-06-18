@@ -121,6 +121,9 @@ importers:
 
   packages/react:
     dependencies:
+      '@redeemloop/adapters':
+        specifier: workspace:*
+        version: link:../adapters
       '@redeemloop/core':
         specifier: workspace:*
         version: link:../core
@@ -168,6 +171,9 @@ importers:
 
   packages/widget:
     dependencies:
+      '@redeemloop/adapters':
+        specifier: workspace:*
+        version: link:../adapters
       '@redeemloop/sdk':
         specifier: workspace:*
         version: link:../sdk

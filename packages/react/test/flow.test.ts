@@ -209,4 +209,134 @@ describe("runRedeemLoopPayFlow", () => {
     expect(result.proof?.status).toBe("confirmed");
     expect(steps).toEqual(["creating_intent", "checking_balance", "requesting_transfer", "broadcasting", "submitting_proof", "complete"]);
   });
+
+  it("can send an EVM ERC-20 transfer through an injected wallet and trusted-recheck settlement", async () => {
+    const calls: Array<{ method: string; params?: unknown }> = [];
+    let chainId = "0x38";
+    const evmProvider = {
+      async request<T = unknown>(args: { method: string; params?: readonly unknown[] | Record<string, unknown> }): Promise<T> {
+        calls.push({ method: args.method, params: args.params });
+        if (args.method === "eth_chainId") return chainId as T;
+        if (args.method === "eth_requestAccounts") return ["0x0000000000000000000000000000000000000123"] as T;
+        if (args.method === "wallet_switchEthereumChain") {
+          const [{ chainId: nextChainId }] = args.params as Array<{ chainId: string }>;
+          chainId = nextChainId;
+          return null as T;
+        }
+        if (args.method === "eth_sendTransaction") return "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" as T;
+        throw new Error(`Unexpected method ${args.method}`);
+      },
+    };
+    const client = {
+      createPaymentIntent: vi.fn(async () => ({
+        intentId: "pi_evm",
+        acceptedAssets: [],
+        merchantVault: "0x0000000000000000000000000000000000000abc",
+        status: "created",
+      })),
+      checkBalance: vi.fn(async () => ({
+        intentId: "pi_evm",
+        acceptedAssets: [],
+        merchantVault: "0x0000000000000000000000000000000000000abc",
+        status: "asset_selected",
+        balanceCheck: { hasSufficientBalance: true },
+      })),
+      requestTransfer: vi.fn(async () => ({
+        intentId: "pi_evm",
+        acceptedAssets: [],
+        selectedAsset: {
+          chainNamespace: "eip155",
+          chainId: 56,
+          assetType: "erc20",
+          assetId: "eip155:56/erc20:0x0000000000000000000000000000000000000def",
+          contract: "0x0000000000000000000000000000000000000def",
+          requiredAmount: "1",
+          termsHash: "terms",
+        },
+        merchantVault: "0x0000000000000000000000000000000000000abc",
+        status: "transfer_requested",
+        transfer: {
+          to: "0x0000000000000000000000000000000000000abc",
+          amount: "1",
+          settlementPolicy: "collect",
+          evm: {
+            chainNamespace: "eip155",
+            chainId: 56,
+            assetType: "erc20",
+            from: "0x0000000000000000000000000000000000000123",
+            to: "0x0000000000000000000000000000000000000abc",
+            contract: "0x0000000000000000000000000000000000000def",
+            amount: "1",
+            transaction: {
+              chainId: 56,
+              from: "0x0000000000000000000000000000000000000123",
+              to: "0x0000000000000000000000000000000000000def",
+              data: "0xa9059cbb",
+              value: "0x0",
+              functionName: "transfer",
+              args: ["0x0000000000000000000000000000000000000abc", "1"],
+            },
+          },
+        },
+      })),
+      markBroadcasted: vi.fn(async (_intentId: string, input: { txid: string }) => ({
+        intentId: "pi_evm",
+        acceptedAssets: [],
+        merchantVault: "0x0000000000000000000000000000000000000abc",
+        status: "broadcasted",
+        txid: input.txid,
+      })),
+      recheckEvmSettlement: vi.fn(async (_intentId: string, input: { txid: string }) => ({
+        proofId: "proof_evm",
+        intentId: "pi_evm",
+        chainNamespace: "eip155",
+        chainId: 56,
+        txid: input.txid,
+        confirmations: 1,
+        from: "0x0000000000000000000000000000000000000123",
+        to: "0x0000000000000000000000000000000000000abc",
+        assetType: "erc20",
+        assetId: "eip155:56/erc20:0x0000000000000000000000000000000000000def",
+        amount: "1",
+        status: "confirmed",
+        trusted: true,
+        paymentIntent: { intentId: "pi_evm", status: "paid" },
+      })),
+    } as unknown as RedeemLoopClient;
+
+    const steps: string[] = [];
+    const result = await runRedeemLoopPayFlow(
+      client,
+      {
+        bindingId: "bind_evm",
+        orderId: "order_evm",
+        channel: "checkout",
+        payerAddress: "0x0000000000000000000000000000000000000123",
+        autoSendEvmTransaction: true,
+        autoRecheckEvmSettlement: true,
+        evmProvider,
+      },
+      { onStep: (step) => steps.push(step) },
+    );
+
+    expect(result.intent.status).toBe("paid");
+    expect(result.broadcastedTxid).toBe("0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
+    expect(client.markBroadcasted).toHaveBeenCalledWith("pi_evm", {
+      txid: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    });
+    expect(client.recheckEvmSettlement).toHaveBeenCalledWith("pi_evm", {
+      txid: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      from: "0x0000000000000000000000000000000000000123",
+    });
+    expect(calls.map((call) => call.method)).toContain("eth_sendTransaction");
+    expect(steps).toEqual([
+      "creating_intent",
+      "checking_balance",
+      "requesting_transfer",
+      "sending_wallet_transaction",
+      "broadcasting",
+      "rechecking_settlement",
+      "complete",
+    ]);
+  });
 });

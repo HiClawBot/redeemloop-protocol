@@ -22,6 +22,10 @@ if (process.env.REDEEMLOOP_EMBED_ALLOWED_ORIGINS === "*") {
   warnings.push("REDEEMLOOP_EMBED_ALLOWED_ORIGINS should not be '*' outside local experiments");
 }
 
+if (process.env.EVM_RPC_URLS) {
+  validateEvmRpcUrls(process.env.EVM_RPC_URLS);
+}
+
 if (mode === "production" && process.env.RELAYER_DRY_RUN !== "false") {
   warnings.push("RELAYER_DRY_RUN should be false only after commerce and settlement credentials are ready");
 }
@@ -62,4 +66,32 @@ function validateApiKeys(input) {
       throw new Error("REDEEMLOOP_API_KEYS entries must use merchantId:apiKey");
     }
   }
+}
+
+function validateEvmRpcUrls(input) {
+  const trimmed = input.trim();
+  if (!trimmed) throw new Error("EVM_RPC_URLS cannot be empty");
+  if (trimmed.startsWith("{")) {
+    const parsed = JSON.parse(trimmed);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      throw new Error("EVM_RPC_URLS JSON must be an object");
+    }
+    for (const [chainId, rpcUrl] of Object.entries(parsed)) {
+      validateChainId(chainId, "EVM_RPC_URLS");
+      if (typeof rpcUrl !== "string" || !rpcUrl.trim()) throw new Error(`EVM_RPC_URLS.${chainId} must be a URL`);
+    }
+    return;
+  }
+  for (const entry of trimmed.split(",")) {
+    if (!entry.trim()) continue;
+    const separator = entry.indexOf(":");
+    if (separator <= 0) throw new Error("EVM_RPC_URLS entries must use chainId:rpcUrl");
+    validateChainId(entry.slice(0, separator), "EVM_RPC_URLS");
+    if (!entry.slice(separator + 1).trim()) throw new Error("EVM_RPC_URLS entries must include rpcUrl");
+  }
+}
+
+function validateChainId(value, fieldName) {
+  const numberValue = Number(value);
+  if (!Number.isSafeInteger(numberValue) || numberValue <= 0) throw new Error(`${fieldName} chainId must be a positive integer`);
 }

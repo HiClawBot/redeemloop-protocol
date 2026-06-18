@@ -4,9 +4,13 @@ import { encodeAbiParameters, encodeEventTopics, type Hex } from "viem";
 import {
   buildErc20BalanceCheckRequest,
   buildErc20TransferRequest,
+  createEip1193EvmWalletAdapter,
   createErc20PaymentProof,
   erc20TransferEvent,
+  getRedeemLoopEvmChainConfig,
+  supportedRedeemLoopEvmChainIds,
   type EvmAdapter,
+  type Eip1193Provider,
   type IndexerAdapter,
   type PsbtBuilderAdapter,
   verifyErc20TransferReceipt,
@@ -101,6 +105,79 @@ describe("adapter contracts", () => {
     });
     expect(short.hasSufficientBalance).toBe(false);
     expect(short.shortfall).toBe("1");
+  });
+
+  it("publishes EVM chain configs for ETH, BSC, Polygon, and Arbitrum", () => {
+    expect(supportedRedeemLoopEvmChainIds).toEqual([1, 56, 137, 42161]);
+    expect(getRedeemLoopEvmChainConfig("eth")).toMatchObject({ chainId: 1, chainIdHex: "0x1" });
+    expect(getRedeemLoopEvmChainConfig("bsc")).toMatchObject({ chainId: 56, chainIdHex: "0x38" });
+    expect(getRedeemLoopEvmChainConfig("pol")).toMatchObject({ chainId: 137, chainIdHex: "0x89" });
+    expect(getRedeemLoopEvmChainConfig("arb")).toMatchObject({ chainId: 42161, chainIdHex: "0xa4b1" });
+  });
+
+  it("switches or adds EVM chains and sends ERC-20 transfers through EIP-1193 wallets", async () => {
+    const calls: Array<{ method: string; params?: unknown }> = [];
+    let chainId = "0x1";
+    const provider: Eip1193Provider = {
+      async request<T = unknown>(args: { method: string; params?: readonly unknown[] | Record<string, unknown> }): Promise<T> {
+        calls.push({ method: args.method, params: args.params });
+        if (args.method === "eth_requestAccounts") return ["0x0000000000000000000000000000000000000123"] as T;
+        if (args.method === "eth_chainId") return chainId as T;
+        if (args.method === "wallet_switchEthereumChain") {
+          const [{ chainId: nextChainId }] = args.params as Array<{ chainId: string }>;
+          if (nextChainId === "0x89" && !calls.some((call) => call.method === "wallet_addEthereumChain")) {
+            const error = new Error("Unrecognized chain") as Error & { code: number };
+            error.code = 4902;
+            throw error;
+          }
+          chainId = nextChainId;
+          return null as T;
+        }
+        if (args.method === "wallet_addEthereumChain") return null as T;
+        if (args.method === "eth_sendTransaction") return "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as T;
+        throw new Error(`Unexpected method ${args.method}`);
+      },
+    };
+    const wallet = createEip1193EvmWalletAdapter(provider);
+    const asset: VoucherAssetDescriptor = {
+      chainNamespace: "eip155",
+      chainId: 137,
+      assetType: "erc20",
+      assetId: "eip155:137/erc20:0x0000000000000000000000000000000000000def",
+      contract: "0x0000000000000000000000000000000000000def",
+      requiredAmount: "1",
+      termsHash: "terms",
+    };
+    const transfer = buildErc20TransferRequest({
+      from: "0x0000000000000000000000000000000000000123",
+      to: "0x0000000000000000000000000000000000000abc",
+      asset,
+    });
+
+    await expect(wallet.connect({ chainId: 137 })).resolves.toMatchObject({
+      address: "0x0000000000000000000000000000000000000123",
+      chainId: 137,
+      chainIdHex: "0x89",
+    });
+    await expect(wallet.sendErc20Transfer(transfer)).resolves.toBe("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+    expect(calls).toContainEqual({
+      method: "wallet_addEthereumChain",
+      params: [
+        expect.objectContaining({
+          chainId: "0x89",
+          chainName: "Polygon PoS",
+        }),
+      ],
+    });
+    const sendCall = calls.find((call) => call.method === "eth_sendTransaction");
+    expect(sendCall?.params).toEqual([
+      expect.objectContaining({
+        from: "0x0000000000000000000000000000000000000123",
+        value: "0x0",
+      }),
+    ]);
+    const [txParams] = sendCall?.params as Array<{ to: string }>;
+    expect(txParams.to.toLowerCase()).toBe("0x0000000000000000000000000000000000000def");
   });
 
   it("verifies ERC-20 Transfer logs from an EVM receipt", () => {
