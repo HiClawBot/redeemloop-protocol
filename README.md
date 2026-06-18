@@ -39,6 +39,7 @@ This release fixes the first public implementation scope:
 - WooCommerce sandbox payment gateway plugin.
 - Webhook event outbox, signed delivery attempts, retry state, dead-letter status, and replay API.
 - Phase 0 hardening with signed EVM vault ownership challenge, PaymentIntent expiration cleanup, audit logs, and webhook drain worker endpoint.
+- Merchant Admin pilot console with vaults, bindings, PaymentIntents, webhooks, delivery records, audit logs, and pilot seed data.
 - Public Merchant Sandbox with Docker Compose, `.env.example`, environment checks, and API reference docs.
 - Bitcoin Rune Wallet/Indexer Beta adapter surface with UniSat `sendRunes`, Xverse `runes_transfer`, Xverse API-backed Rune balance/UTXO/activity verification, API-level Rune settlement recheck, and a clearly labeled PSBT request fixture boundary.
 - Merchant receiving address / vault confirmation model.
@@ -78,7 +79,7 @@ packages/react     React provider and Pay Button for merchant embeds
 packages/widget    Script-tag widget for non-React merchant stores
 packages/contracts EVM ERC-20 voucher example contracts only
 services/api       Fastify API for bindings, intents, proofs, webhooks, commerce adapters
-apps/pos-verifier  Local Phase 0 console, POS-style QR demo, demo store page, and EVM live certification console
+apps/pos-verifier  Local Phase 0 console, POS-style QR demo, demo store page, EVM live certification console, and merchant admin console
 plugins/woocommerce WooCommerce sandbox payment gateway plugin
 docs/              v0.2 protocol, boundary, API, integration, and construction docs
 whitepaper/        v0.2 whitepaper source and rendered files
@@ -298,6 +299,7 @@ manual_review
 - [Public Merchant Sandbox](docs/PUBLIC_SANDBOX.md)
 - [EVM Multi-Chain Wallet Beta](docs/EVM_MULTI_CHAIN_WALLET.md)
 - [EVM Live Certification Runbook](docs/EVM_LIVE_CERTIFICATION.md)
+- [Merchant Admin and WooCommerce Pilot](docs/MERCHANT_ADMIN_WOOCOMMERCE_PILOT.md)
 - [Bitcoin Rune Alpha](docs/BITCOIN_RUNE_ALPHA.md)
 - [Bitcoin Rune Real-Usability Plan](docs/BITCOIN_RUNE_REAL_USABILITY.md)
 - [API Reference](docs/API_REFERENCE.md)
@@ -347,6 +349,7 @@ PaymentIntent
 - WooCommerce sandbox payment gateway plugin。
 - Webhook event outbox、签名投递、重试状态、dead-letter 状态和 replay API。
 - Phase 0 hardening：EVM vault ownership 签名 challenge、PaymentIntent 过期清理、audit logs 和 webhook drain worker endpoint。
+- Merchant Admin pilot console：支持 vaults、bindings、PaymentIntents、webhooks、delivery records、audit logs 和 pilot seed data。
 - Public Merchant Sandbox：Docker Compose、`.env.example`、环境检查和 API reference 文档。
 - Bitcoin Rune Wallet/Indexer Beta adapter surface：UniSat `sendRunes`、Xverse `runes_transfer`、基于 Xverse API 的 Rune balance/UTXO/activity 校验、API-level Rune settlement recheck，以及明确标注的 PSBT request fixture 边界。
 - 商户收券地址 / vault 确认模型。
@@ -386,7 +389,7 @@ packages/react     面向商户嵌入的 React provider 和 Pay Button
 packages/widget    面向非 React 店铺的 script-tag widget
 packages/contracts EVM ERC-20 提货资产示例合约
 services/api       binding、intent、proof、webhook、电商适配 API
-apps/pos-verifier  本地 Phase 0 控制台、POS QR 演示、demo store 页面和 EVM live certification console
+apps/pos-verifier  本地 Phase 0 控制台、POS QR 演示、demo store 页面、EVM live certification console 和 merchant admin console
 docs/              v0.2 协议、边界、API、集成和施工文档
 whitepaper/        v0.2 白皮书源码和渲染文件
 ```
@@ -511,6 +514,7 @@ manual_review
 - [Public Merchant Sandbox](docs/PUBLIC_SANDBOX.md)
 - [EVM Multi-Chain Wallet Beta](docs/EVM_MULTI_CHAIN_WALLET.md)
 - [EVM Live Certification Runbook](docs/EVM_LIVE_CERTIFICATION.md)
+- [Merchant Admin and WooCommerce Pilot](docs/MERCHANT_ADMIN_WOOCOMMERCE_PILOT.md)
 - [Bitcoin Rune Alpha](docs/BITCOIN_RUNE_ALPHA.md)
 - [Bitcoin Rune Real-Usability Plan](docs/BITCOIN_RUNE_REAL_USABILITY.md)
 - [API Reference](docs/API_REFERENCE.md)

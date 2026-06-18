@@ -1,4 +1,4 @@
-# RedeemLoop Integration Guide v0.4.5 / 集成指南 v0.4.5
+# RedeemLoop Integration Guide v0.5.0 / 集成指南 v0.5.0
 
 ## English
 
@@ -24,6 +24,7 @@ The merchant brings the voucher asset. RedeemLoop does not issue, mint, etch, in
 6. Receive mark-as-paid notifications after settlement confirmation.
 
 For a complete local sandbox, see [Public Merchant Sandbox](PUBLIC_SANDBOX.md). For endpoint-by-endpoint reference, see [API Reference](API_REFERENCE.md).
+For the local merchant operations console and WooCommerce pilot checklist, see [Merchant Admin and WooCommerce Pilot](MERCHANT_ADMIN_WOOCOMMERCE_PILOT.md).
 For ETH/BSC/POL/ARB wallet support, see [EVM Multi-Chain Wallet Beta](EVM_MULTI_CHAIN_WALLET.md) and [EVM Live Certification Runbook](EVM_LIVE_CERTIFICATION.md).
 For Bitcoin Rune wallet/indexer beta support, see [Bitcoin Rune Alpha](BITCOIN_RUNE_ALPHA.md) and [Bitcoin Rune Real-Usability Plan](BITCOIN_RUNE_REAL_USABILITY.md).
 
@@ -224,7 +225,7 @@ Run `expire-stale` from a cron or operator task to move old incomplete PaymentIn
 
 ### 10. WooCommerce and Shopify
 
-v0.4.2 includes the sandbox WooCommerce payment gateway plugin at:
+v0.5.0 includes the sandbox WooCommerce payment gateway plugin at:
 
 ```text
 plugins/woocommerce/redeemloop-voucher-gateway.php
@@ -240,9 +241,15 @@ The plugin provides:
 
 - WooCommerce payment method registration.
 - Admin settings for API Base URL, Merchant ID, API Key, Default Binding ID, Webhook Secret, and optional widget script URL.
+- Admin diagnostics showing the active API base URL, merchant ID, default binding ID, and webhook endpoint.
+- Connection diagnostics for RedeemLoop API credentials plus webhook secret HMAC self-test.
+- Optional SKU-to-binding mapping with one `sku=bindingId` entry per line.
 - PaymentIntent creation during checkout.
 - Order-received widget container using `data-intent-id`.
+- Order-received diagnostics for order status, PaymentIntent ID, and selected binding.
 - Webhook endpoint at `/wp-json/redeemloop/v1/woocommerce/mark-paid`.
+
+For local operations, run the POS console and open `/merchant-admin`. The merchant admin console loads vaults, bindings, PaymentIntents, webhook endpoints/events/deliveries, and audit logs for a pilot merchant, and can seed a repeatable WooCommerce trial binding.
 
 Shopify should initially use product-page buttons or external/manual payment bridge patterns. Do not block the early protocol on a Shopify payment app review.
 
@@ -310,6 +317,7 @@ Asset Binding -> PaymentIntent -> 提货券转账请求 -> 收券确认 -> 电�
 6. settlement 确认后接收 mark-as-paid 通知。
 
 完整本地 sandbox 请见 [Public Merchant Sandbox](PUBLIC_SANDBOX.md)。逐端点 API reference 请见 [API Reference](API_REFERENCE.md)。
+本地 merchant operations console 和 WooCommerce pilot checklist 请见 [Merchant Admin and WooCommerce Pilot](MERCHANT_ADMIN_WOOCOMMERCE_PILOT.md)。
 ETH/BSC/POL/ARB 钱包支持请见 [EVM Multi-Chain Wallet Beta](EVM_MULTI_CHAIN_WALLET.md) 和 [EVM Live Certification Runbook](EVM_LIVE_CERTIFICATION.md)。
 Bitcoin Rune 钱包/索引器 beta 支持请见 [Bitcoin Rune Alpha](BITCOIN_RUNE_ALPHA.md) 和 [Bitcoin Rune Real-Usability Plan](BITCOIN_RUNE_REAL_USABILITY.md)。
 
@@ -510,7 +518,7 @@ EVM vault ownership 验证流程：先请求 challenge，让商户钱包签名�
 
 ### 10. WooCommerce 和 Shopify
 
-v0.4.2 已包含 WooCommerce sandbox payment gateway 插件：
+v0.5.0 已包含 WooCommerce sandbox payment gateway 插件：
 
 ```text
 plugins/woocommerce/redeemloop-voucher-gateway.php
@@ -526,9 +534,15 @@ Checkout payment method -> RedeemLoop Pay Button/widget -> settlement confirmati
 
 - WooCommerce payment method 注册。
 - 后台配置 API Base URL、Merchant ID、API Key、Default Binding ID、Webhook Secret 和可选 widget script URL。
+- 后台诊断显示当前 API base URL、merchant ID、default binding ID 和 webhook endpoint。
+- RedeemLoop API 凭证连接诊断，以及 webhook secret HMAC 自检。
+- 可选 SKU-to-binding mapping，每行一个 `sku=bindingId`。
 - checkout 时创建 PaymentIntent。
 - order-received 页面通过 `data-intent-id` 展示 widget 容器。
+- order-received 诊断显示订单状态、PaymentIntent ID 和选中的 binding。
 - webhook endpoint：`/wp-json/redeemloop/v1/woocommerce/mark-paid`。
+
+本地运维可启动 POS console 后打开 `/merchant-admin`。Merchant admin console 可以加载 pilot merchant 的 vaults、bindings、PaymentIntents、webhook endpoints/events/deliveries 和 audit logs，并 seed 一组可重复 WooCommerce trial binding。
 
 Shopify 初期建议采用商品页按钮或 external/manual payment bridge 模式，不要让早期协议阻塞在 Shopify payment app 审核上。
 

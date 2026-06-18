@@ -11,8 +11,10 @@ This roadmap is the public product direction after the v0.2 Phase 0 realignment.
 - ETH, BSC, Polygon PoS, and Arbitrum wallet send support through EIP-1193 injected wallets.
 - EVM live certification console, wallet error taxonomy, and RPC health diagnostics for pilot runs.
 - Phase 0 hardening: vault ownership challenge, PaymentIntent expiration cleanup, audit logs, and webhook drain operations.
+- Merchant admin pilot console for vaults, bindings, PaymentIntents, webhooks, deliveries, and audit logs.
+- WooCommerce pilot improvements with admin diagnostics and SKU-to-binding mapping.
 
-Current status: v0.4.5 provides EVM pilot-certification tooling plus Phase 0 hardening. Funded wallet runs are still required before claiming a specific wallet/network pair is production-certified.
+Current status: v0.5.0 provides EVM pilot-certification tooling, Phase 0 hardening, a local merchant operations console, and WooCommerce pilot mapping. Funded wallet runs are still required before claiming a specific wallet/network pair is production-certified.
 
 ## Phase 1
 

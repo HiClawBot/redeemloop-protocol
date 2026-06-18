@@ -1,4 +1,4 @@
-# RedeemLoop API Reference v0.4.5
+# RedeemLoop API Reference v0.5.0
 
 ## English
 
@@ -39,6 +39,7 @@ POST /v1/bindings/:bindingId/activate
 
 ```http
 POST /v1/payment-intents
+GET  /v1/payment-intents?merchantId=...&bindingId=...&status=...&orderId=...
 GET  /v1/payment-intents/:intentId
 POST /v1/payment-intents/:intentId/connect-wallet
 POST /v1/payment-intents/:intentId/select-asset
@@ -137,6 +138,7 @@ POST /v1/bindings/:bindingId/activate
 
 ```http
 POST /v1/payment-intents
+GET  /v1/payment-intents?merchantId=...&bindingId=...&status=...&orderId=...
 GET  /v1/payment-intents/:intentId
 POST /v1/payment-intents/:intentId/connect-wallet
 POST /v1/payment-intents/:intentId/select-asset

@@ -811,6 +811,17 @@ export async function createApp(config: Partial<ApiConfig> = {}): Promise<Fastif
     }
   });
 
+  app.get("/v1/payment-intents", async (request) => {
+    const query = request.query as { merchantId?: string; bindingId?: string; status?: PaymentIntentStatus; orderId?: string };
+    return [...paymentIntents.values()].filter((intent) => {
+      if (query.merchantId && intent.merchantId !== query.merchantId) return false;
+      if (query.bindingId && intent.bindingId !== query.bindingId) return false;
+      if (query.status && intent.status !== query.status) return false;
+      if (query.orderId && intent.orderId !== query.orderId) return false;
+      return true;
+    });
+  });
+
   app.get("/v1/payment-intents/:intentId", async (request, reply) => {
     const params = request.params as { intentId: string };
     const intent = paymentIntents.get(params.intentId);
@@ -1773,6 +1784,8 @@ function resolveRequestMerchantId(
     request.url.startsWith("/v1/webhook-deliveries") ||
     request.url.startsWith("/v1/merchant-vaults") ||
     request.url.startsWith("/v1/payment-intents/expire-stale") ||
+    request.url === "/v1/payment-intents" ||
+    request.url.startsWith("/v1/payment-intents?") ||
     request.url.startsWith("/v1/bindings") ||
     request.url.startsWith("/v1/audit-logs")
   ) {

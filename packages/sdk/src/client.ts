@@ -21,6 +21,7 @@ import type {
   ExpireStalePaymentIntentsResponse,
   ListAuditLogsInput,
   ListBindingsInput,
+  ListPaymentIntentsInput,
   ListWebhookDeliveriesInput,
   ListWebhookEventsInput,
   ListMerchantVaultsInput,
@@ -150,6 +151,10 @@ export class RedeemLoopClient {
       method: "POST",
       body: JSON.stringify(input),
     });
+  }
+
+  async listPaymentIntents(input: ListPaymentIntentsInput = {}): Promise<RedeemLoopPaymentIntent[]> {
+    return this.request(this.withQuery("/v1/payment-intents", input));
   }
 
   async getPaymentIntent(intentId: string): Promise<RedeemLoopPaymentIntent> {

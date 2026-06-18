@@ -95,6 +95,13 @@ export interface CreatePaymentIntentInput extends Partial<RedeemLoopPaymentInten
   assetId?: string;
 }
 
+export interface ListPaymentIntentsInput {
+  merchantId?: string;
+  bindingId?: string;
+  status?: RedeemLoopPaymentIntent["status"];
+  orderId?: string;
+}
+
 export interface ConnectWalletInput {
   payerAddress: string;
 }

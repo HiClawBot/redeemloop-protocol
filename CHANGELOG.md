@@ -4,6 +4,32 @@
 
 No unreleased changes yet.
 
+## v0.5.0 - 2026-06-18
+
+### Added
+
+- Merchant admin console at `/merchant-admin`.
+- API `GET /v1/payment-intents` with merchant, binding, status, and order filters.
+- SDK `listPaymentIntents(...)`.
+- Merchant admin pilot seed action for vault, entitlement, binding, and webhook setup.
+- WooCommerce SKU-to-binding map.
+- WooCommerce admin diagnostics for API base URL, merchant ID, default binding ID, and webhook endpoint.
+- WooCommerce connection test for API credentials and webhook secret HMAC self-test.
+- WooCommerce order-received diagnostics for order status, PaymentIntent ID, and selected binding.
+- Bilingual merchant admin and WooCommerce pilot guide.
+
+### 中文说明
+
+- 新增 merchant admin console：`/merchant-admin`。
+- API 新增 `GET /v1/payment-intents`，支持按 merchant、binding、status、order 过滤。
+- SDK 新增 `listPaymentIntents(...)`。
+- Merchant admin 支持 seed pilot vault、entitlement、binding 和 webhook。
+- WooCommerce 新增 SKU-to-binding map。
+- WooCommerce 后台诊断显示 API base URL、merchant ID、default binding ID 和 webhook endpoint。
+- WooCommerce 新增 API 凭证连接测试和 webhook secret HMAC 自检。
+- WooCommerce order-received 页面新增订单状态、PaymentIntent ID 和所选 binding 诊断。
+- 新增双语 merchant admin 和 WooCommerce pilot guide。
+
 ## v0.4.5 - 2026-06-18
 
 ### Added

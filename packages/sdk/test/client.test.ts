@@ -50,6 +50,7 @@ describe("RedeemLoopClient", () => {
     await client.requestMerchantVaultVerificationChallenge("vault_test");
     await client.verifyMerchantVaultSignature("vault_test", { signature: "0xsig", message: "challenge" });
     await client.expireStalePaymentIntents({ merchantId: "merchant_cafe" });
+    await client.listPaymentIntents({ merchantId: "merchant_cafe" });
     await client.connectWallet("pi_test", { payerAddress: "0x0000000000000000000000000000000000000123" });
     await client.checkBalance("pi_test", {
       payerAddress: "0x0000000000000000000000000000000000000123",
@@ -88,6 +89,7 @@ describe("RedeemLoopClient", () => {
       "https://api.example.test/v1/merchant-vaults/vault_test/verification-challenge",
       "https://api.example.test/v1/merchant-vaults/vault_test/verify-signature",
       "https://api.example.test/v1/payment-intents/expire-stale",
+      "https://api.example.test/v1/payment-intents?merchantId=merchant_cafe",
       "https://api.example.test/v1/payment-intents/pi_test/connect-wallet",
       "https://api.example.test/v1/payment-intents/pi_test/check-balance",
       "https://api.example.test/v1/payment-intents/pi_test/transfer-requested",

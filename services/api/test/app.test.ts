@@ -742,6 +742,14 @@ describe("RedeemLoop API relayer prototype", () => {
     });
     expect(getResponse.json()).toMatchObject({ status: "expired" });
 
+    const listResponse = await app.inject({
+      method: "GET",
+      url: "/v1/payment-intents?merchantId=merchant_expire",
+    });
+    expect(listResponse.statusCode).toBe(200);
+    expect(listResponse.json()).toHaveLength(1);
+    expect(listResponse.json()[0]).toMatchObject({ intentId: "pi_expire", status: "expired" });
+
     const auditResponse = await app.inject({
       method: "GET",
       url: "/v1/audit-logs?merchantId=merchant_expire&entityId=pi_expire",
