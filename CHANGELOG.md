@@ -4,6 +4,24 @@
 
 No unreleased changes yet.
 
+## v0.6.0 - 2026-06-18
+
+### Added
+
+- Rune indexer failover adapter boundary.
+- Rune proof failover attempt metadata.
+- Rune settlement recheck `manualReviewOnIndexerError` recovery path.
+- Rune manual-review API response for indexer lag/unavailability.
+- Bilingual Rune production certification track guide.
+
+### 中文说明
+
+- 新增 Rune indexer failover adapter boundary。
+- Rune proof 新增 failover attempt metadata。
+- Rune settlement recheck 新增 `manualReviewOnIndexerError` 恢复路径。
+- Indexer lag/unavailability 时，Rune API 可返回 manual-review 响应。
+- 新增双语 Rune production certification track guide。
+
 ## v0.5.1 - 2026-06-18
 
 ### Added

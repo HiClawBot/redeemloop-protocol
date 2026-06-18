@@ -1,4 +1,4 @@
-# RedeemLoop API Reference v0.5.1
+# RedeemLoop API Reference v0.6.0
 
 ## English
 
@@ -63,6 +63,8 @@ POST /v1/settlement/recheck/:intentId
 POST /v1/settlement/evm/recheck/:intentId
 POST /v1/settlement/rune/recheck/:intentId
 ```
+
+`POST /v1/settlement/rune/recheck/:intentId` accepts `manualReviewOnIndexerError: true`. If the configured Rune indexer fails, the API returns `202` and moves the PaymentIntent to `manual_review` instead of losing the checkout trail.
 
 `POST /v1/settlement/rune/recheck/:intentId` accepts `txid`, optional `from`, and optional `confirmations`. It uses the configured `RuneIndexerAdapter`; by default the API creates an Xverse adapter from `XVERSE_API_KEY`, `XVERSE_NETWORK`, and optional `XVERSE_API_BASE_URL`.
 
@@ -164,6 +166,8 @@ POST /v1/settlement/recheck/:intentId
 POST /v1/settlement/evm/recheck/:intentId
 POST /v1/settlement/rune/recheck/:intentId
 ```
+
+`POST /v1/settlement/rune/recheck/:intentId` 支持 `manualReviewOnIndexerError: true`。如果配置的 Rune indexer 失败，API 会返回 `202`，并把 PaymentIntent 推进到 `manual_review`，避免丢失 checkout trail。
 
 `POST /v1/settlement/rune/recheck/:intentId` 接收 `txid`、可选 `from` 和可选 `confirmations`。它会使用配置好的 `RuneIndexerAdapter`；默认情况下 API 会根据 `XVERSE_API_KEY`、`XVERSE_NETWORK` 和可选 `XVERSE_API_BASE_URL` 创建 Xverse adapter。
 

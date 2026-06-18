@@ -13,6 +13,7 @@ What is now implemented:
 - Xverse direct Rune transfer path through `runes_transfer`.
 - Xverse PSBT signing path with explicit base64 PSBT semantics and optional `signInputs`.
 - Xverse API-backed Rune indexer adapter for balance, UTXO, and activity-based transfer proof lookup.
+- Failover Rune indexer adapter boundary for primary/fallback proof lookup.
 - API-level Rune settlement recheck at `POST /v1/settlement/rune/recheck/:intentId`.
 - SDK helper `client.recheckRuneSettlement(intentId, { txid, from, confirmations })`.
 - Mock Rune indexer for deterministic adapter tests.
@@ -101,6 +102,7 @@ RedeemLoop v0.4.2 把 v0.4.0 的 Bitcoin Rune interface alpha 升级为带 API-l
 - 通过 Xverse `runes_transfer` 发起 Rune 转账。
 - Xverse PSBT 签名路径，并明确使用 base64 PSBT 语义和可选 `signInputs`。
 - 基于 Xverse API 的 Rune indexer adapter，支持 balance、UTXO 和 activity-based transfer proof 查询。
+- 新增 failover Rune indexer adapter boundary，用于 primary/fallback proof lookup。
 - API-level Rune settlement recheck：`POST /v1/settlement/rune/recheck/:intentId`。
 - SDK helper：`client.recheckRuneSettlement(intentId, { txid, from, confirmations })`。
 - 用于确定性测试的 mock Rune indexer。

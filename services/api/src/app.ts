@@ -1134,14 +1134,40 @@ export async function createApp(config: Partial<ApiConfig> = {}): Promise<Fastif
       const txid = requireString(body.txid ?? intent.broadcastTxid, "txid");
       const from = requireString(body.from ?? intent.payerAddress, "from");
       const confirmations = body.confirmations === undefined ? undefined : normalizeNonNegativeInteger(body.confirmations, "confirmations");
-      const proof = await getRuneIndexer(resolvedConfig).getRuneTransferProof({
-        intentId: intent.intentId,
-        txid,
-        asset,
-        from,
-        to: intent.merchantVault,
-        confirmations,
-      });
+      let proof: VoucherPaymentProof;
+      try {
+        proof = await getRuneIndexer(resolvedConfig).getRuneTransferProof({
+          intentId: intent.intentId,
+          txid,
+          asset,
+          from,
+          to: intent.merchantVault,
+          confirmations,
+        });
+      } catch (error) {
+        if (body.manualReviewOnIndexerError === true && canTransition(intent.status, "manual_review")) {
+          const nextIntent = transitionPaymentIntent(intent, "manual_review");
+          paymentIntents.set(nextIntent.intentId, nextIntent);
+          recordAuditLog(auditLogs, {
+            merchantId: nextIntent.merchantId,
+            action: "payment_intent.rune_manual_review",
+            entityType: "payment_intent",
+            entityId: nextIntent.intentId,
+            summary: "PaymentIntent moved to manual review after Rune indexer recheck error",
+            before: { status: intent.status },
+            after: { status: nextIntent.status, txid, error: errorMessage(error) },
+          });
+          return reply.code(202).send({
+            intentId: nextIntent.intentId,
+            status: nextIntent.status,
+            trusted: false,
+            manualReview: true,
+            error: errorMessage(error),
+            paymentIntent: nextIntent,
+          });
+        }
+        throw error;
+      }
       assertValidVoucherPaymentProof(proof, intent);
       const idempotencyKey = proofIdempotencyKey(proof);
       const existingProofId = proofIdempotency.get(idempotencyKey);
@@ -2819,5 +2845,9 @@ function verifyOptionalWebhookSecret(secret: string | undefined, rawBody: string
 }
 
 function errorBody(error: unknown): { error: string } {
-  return { error: error instanceof Error ? error.message : "Unexpected API error" };
+  return { error: errorMessage(error) };
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "Unexpected API error";
 }

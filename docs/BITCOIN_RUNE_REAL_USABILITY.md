@@ -47,6 +47,7 @@ v0.4.2 shipped:
 
 - API-level Rune settlement recheck endpoint using configured indexer adapters.
 - SDK helper for Rune settlement recheck.
+- Multi-indexer failover adapter boundary and manual-review recovery for indexer lag.
 - Environment configuration for Xverse API key, network, and optional API base URL.
 
 v0.4.3 target:
@@ -108,6 +109,7 @@ v0.4.2 已发布：
 
 - 增加 API-level Rune settlement recheck endpoint，使用配置好的 indexer adapters。
 - 增加 SDK Rune settlement recheck helper。
+- 增加 multi-indexer failover adapter boundary 和 indexer lag manual-review recovery。
 - 增加 Xverse API key、network 和可选 API base URL 的环境配置。
 
 v0.4.3 目标：

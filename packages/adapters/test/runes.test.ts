@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   MockRuneIndexerAdapter,
   buildRuneTransferPsbtRequest,
+  createFailoverRuneIndexerAdapter,
   createUniSatRuneWalletAdapter,
   createXverseRuneIndexerAdapter,
   createXverseRuneWalletAdapter,
@@ -307,6 +308,68 @@ describe("Bitcoin Rune adapter alpha", () => {
       status: "confirmed",
     });
   });
+
+  it("fails over Rune proof lookup across multiple indexers", async () => {
+    const failing = {
+      async getRuneBalance() {
+        throw new Error("primary balance timeout");
+      },
+      async listRuneUtxos() {
+        throw new Error("primary utxo timeout");
+      },
+      async getRuneTransferProof() {
+        throw new Error("primary activity timeout");
+      },
+    };
+    const fallback = new MockRuneIndexerAdapter({
+      balances: [{ address: "bc1payer", runeId: "840000:3", amount: "12" }],
+      utxos,
+    });
+    const indexer = createFailoverRuneIndexerAdapter([
+      { name: "primary", adapter: failing },
+      { name: "fallback", adapter: fallback },
+    ]);
+
+    await expect(indexer.getRuneBalance("bc1payer", "840000:3")).resolves.toMatchObject({ amount: "12" });
+    await expect(
+      indexer.getRuneTransferProof({
+        intentId: "pi_rune",
+        txid: "btc_txid",
+        asset: runeAsset,
+        from: "bc1payer",
+        to: "bc1merchant",
+        confirmations: 1,
+      }),
+    ).resolves.toMatchObject({
+      status: "confirmed",
+      rawProof: {
+        failover: {
+          selectedIndexer: "fallback",
+          attempts: [
+            { indexer: "primary", status: "error", error: "primary activity timeout" },
+            { indexer: "fallback", status: "success" },
+          ],
+        },
+      },
+    });
+  });
+
+  it("reports exhausted Rune indexer failover attempts", async () => {
+    const indexer = createFailoverRuneIndexerAdapter([
+      { name: "primary", adapter: failingRuneIndexer("primary down") },
+      { name: "secondary", adapter: failingRuneIndexer("secondary lagging") },
+    ]);
+
+    await expect(
+      indexer.getRuneTransferProof({
+        intentId: "pi_rune",
+        txid: "btc_txid",
+        asset: runeAsset,
+        from: "bc1payer",
+        to: "bc1merchant",
+      }),
+    ).rejects.toThrow("primary: primary down; secondary: secondary lagging");
+  });
 });
 
 function jsonResponse(body: unknown): Response {
@@ -314,4 +377,18 @@ function jsonResponse(body: unknown): Response {
     status: 200,
     headers: { "content-type": "application/json" },
   });
+}
+
+function failingRuneIndexer(message: string) {
+  return {
+    async getRuneBalance() {
+      throw new Error(message);
+    },
+    async listRuneUtxos() {
+      throw new Error(message);
+    },
+    async getRuneTransferProof() {
+      throw new Error(message);
+    },
+  };
 }

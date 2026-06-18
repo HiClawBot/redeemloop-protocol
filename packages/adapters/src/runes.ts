@@ -89,6 +89,17 @@ export interface RuneIndexerAdapter {
   }): Promise<VoucherPaymentProof>;
 }
 
+export interface NamedRuneIndexerAdapter {
+  name: string;
+  adapter: RuneIndexerAdapter;
+}
+
+export interface RuneIndexerFailoverAttempt {
+  indexer: string;
+  status: "success" | "error";
+  error?: string;
+}
+
 export type RuneIndexerNetwork = "mainnet" | "signet" | "testnet4";
 
 export interface XverseRuneIndexerOptions {
@@ -377,6 +388,40 @@ export function createXverseRuneIndexerAdapter(options: XverseRuneIndexerOptions
   };
 }
 
+export function createFailoverRuneIndexerAdapter(indexers: NamedRuneIndexerAdapter[]): RuneIndexerAdapter {
+  if (!indexers.length) throw new Error("Rune indexer failover requires at least one indexer");
+  return {
+    async getRuneBalance(address, runeId) {
+      return firstSuccessfulRuneIndexerCall(indexers, "getRuneBalance", (indexer) => indexer.getRuneBalance(address, runeId));
+    },
+    async listRuneUtxos(address, runeId) {
+      return firstSuccessfulRuneIndexerCall(indexers, "listRuneUtxos", (indexer) => indexer.listRuneUtxos(address, runeId));
+    },
+    async getRuneTransferProof(input) {
+      const attempts: RuneIndexerFailoverAttempt[] = [];
+      for (const item of indexers) {
+        try {
+          const proof = await item.adapter.getRuneTransferProof(input);
+          attempts.push({ indexer: item.name, status: "success" });
+          return {
+            ...proof,
+            rawProof: {
+              ...(recordOfUnknown(proof.rawProof)),
+              failover: {
+                selectedIndexer: item.name,
+                attempts,
+              },
+            },
+          };
+        } catch (error) {
+          attempts.push({ indexer: item.name, status: "error", error: errorMessage(error) });
+        }
+      }
+      throw new Error(`Rune indexer failover exhausted: ${attempts.map((attempt) => `${attempt.indexer}: ${attempt.error}`).join("; ")}`);
+    },
+  };
+}
+
 export class MockRuneIndexerAdapter implements RuneIndexerAdapter {
   constructor(private readonly fixtures: { balances?: RuneBalance[]; utxos?: RuneUtxo[] } = {}) {}
 
@@ -550,6 +595,28 @@ function normalizeUniSatNetwork(value: unknown): BitcoinNetwork {
 
 function recordOfUnknown(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+}
+
+async function firstSuccessfulRuneIndexerCall<T>(
+  indexers: NamedRuneIndexerAdapter[],
+  operation: string,
+  call: (indexer: RuneIndexerAdapter) => Promise<T>,
+): Promise<T> {
+  const attempts: RuneIndexerFailoverAttempt[] = [];
+  for (const item of indexers) {
+    try {
+      const result = await call(item.adapter);
+      attempts.push({ indexer: item.name, status: "success" });
+      return result;
+    } catch (error) {
+      attempts.push({ indexer: item.name, status: "error", error: errorMessage(error) });
+    }
+  }
+  throw new Error(`Rune indexer failover exhausted during ${operation}: ${attempts.map((attempt) => `${attempt.indexer}: ${attempt.error}`).join("; ")}`);
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "Unknown Rune indexer error";
 }
 
 function base64ToHex(value: string): string {

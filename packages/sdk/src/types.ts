@@ -249,11 +249,21 @@ export interface RuneSettlementRecheckInput {
   txid?: string;
   from?: string;
   confirmations?: number;
+  manualReviewOnIndexerError?: boolean;
 }
 
-export interface RuneSettlementRecheckResponse extends SettlementProofResponse {
-  trusted: true;
+export interface RuneSettlementManualReviewResponse {
+  intentId: string;
+  status: "manual_review";
+  trusted: false;
+  manualReview: true;
+  error: string;
+  paymentIntent: RedeemLoopPaymentIntent;
 }
+
+export type RuneSettlementRecheckResponse = (SettlementProofResponse & {
+  trusted: true;
+}) | RuneSettlementManualReviewResponse;
 
 export interface EvmRpcDiagnostic {
   chainId: number;

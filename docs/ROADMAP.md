@@ -23,9 +23,10 @@ Current status: v0.5.1 provides EVM pilot-certification tooling, Phase 0 hardeni
 - UniSat / Xverse wallet adapter using wallet-native transfer methods.
 - Rune indexer adapter, starting with Xverse API-backed balance, UTXO, and activity proof lookup.
 - API-level Rune settlement recheck from txid to `VoucherPaymentProof`.
+- Multi-indexer failover adapter boundary and manual-review recovery for indexer lag.
 - Production PSBT builder remains a later hardening target; v0.4.2 keeps PSBT output as a fixture boundary.
 
-Current status: v0.4.2 provides beta integration support, not live-certified production support.
+Current status: v0.6.0 provides certification-track hardening, not live-certified production support.
 
 ## Phase 2
 

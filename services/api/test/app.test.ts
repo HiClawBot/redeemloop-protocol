@@ -1311,6 +1311,54 @@ describe("RedeemLoop API relayer prototype", () => {
     await app.close();
   });
 
+  it("moves Rune intents to manual review when indexer recheck fails and manual review is requested", async () => {
+    const app = await createApp({
+      chainId: 31337,
+      dryRun: true,
+      runeIndexer: {
+        async getRuneBalance() {
+          throw new Error("indexer lagging");
+        },
+        async listRuneUtxos() {
+          throw new Error("indexer lagging");
+        },
+        async getRuneTransferProof() {
+          throw new Error("indexer lagging");
+        },
+      },
+    });
+    const intentId = await createRunePaymentIntent(app, "manual_review");
+
+    const response = await app.inject({
+      method: "POST",
+      url: `/v1/settlement/rune/recheck/${intentId}`,
+      payload: {
+        txid: "btc_txid",
+        from: "bc1payer",
+        manualReviewOnIndexerError: true,
+      },
+    });
+    expect(response.statusCode).toBe(202);
+    expect(response.json()).toMatchObject({
+      intentId,
+      status: "manual_review",
+      trusted: false,
+      manualReview: true,
+      error: "indexer lagging",
+      paymentIntent: {
+        status: "manual_review",
+      },
+    });
+
+    const getResponse = await app.inject({
+      method: "GET",
+      url: `/v1/payment-intents/${intentId}`,
+    });
+    expect(getResponse.json()).toMatchObject({ status: "manual_review" });
+
+    await app.close();
+  });
+
   it("creates an intent, verifies the EIP-712 signature, and dry-runs submission", async () => {
     const app = await createApp({ chainId: 31337, dryRun: true });
 
