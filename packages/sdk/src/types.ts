@@ -100,6 +100,7 @@ export interface CreatePosPaymentIntentInput extends Partial<RedeemLoopPaymentIn
   storeId?: string;
   terminalId: string;
   terminalNonce?: string;
+  baseUrl?: string;
 }
 
 export interface PosPaymentIntentResponse {
@@ -112,6 +113,7 @@ export interface PosPaymentIntentResponse {
     terminalId: string;
     terminalNonce: string;
     expiresAt: string;
+    checkoutToken: string;
     paymentUrl: string;
   };
 }
@@ -128,6 +130,7 @@ export interface ShortPaymentLink {
   merchantId: string;
   channel: RedeemLoopPaymentIntent["channel"];
   url: string;
+  checkoutToken?: string;
   createdAt: string;
   expiresAt: string;
 }
@@ -135,6 +138,24 @@ export interface ShortPaymentLink {
 export interface ShortLinkPaymentIntentResponse {
   paymentIntent: RedeemLoopPaymentIntent;
   shortLink: ShortPaymentLink;
+}
+
+export interface PublicPaymentSession {
+  intentId: string;
+  merchantId: string;
+  channel: RedeemLoopPaymentIntent["channel"];
+  expiresAt: string;
+  createdAt: string;
+}
+
+export interface PublicPaymentSessionResponse {
+  publicSession: PublicPaymentSession;
+  shortLink?: Omit<ShortPaymentLink, "checkoutToken">;
+  paymentIntent: RedeemLoopPaymentIntent;
+}
+
+export interface PublicPaymentSessionTokenInput {
+  checkoutToken: string;
 }
 
 export interface ListPaymentIntentsInput {
@@ -233,11 +254,19 @@ export interface TransferRequestResponse extends RedeemLoopPaymentIntent {
   };
 }
 
+export interface PublicTransferRequestResponse extends PublicPaymentSessionResponse {
+  transfer: TransferRequestResponse["transfer"];
+}
+
 export interface BroadcastedInput {
   txid: string;
 }
 
 export interface BroadcastedResponse extends RedeemLoopPaymentIntent {
+  txid: string;
+}
+
+export interface PublicBroadcastedResponse extends PublicPaymentSessionResponse {
   txid: string;
 }
 
@@ -285,6 +314,10 @@ export interface EvmSettlementRecheckInput {
 
 export interface EvmSettlementRecheckResponse extends SettlementProofResponse {
   trusted: true;
+}
+
+export interface PublicEvmSettlementRecheckResponse extends EvmSettlementRecheckResponse {
+  publicSession: PublicPaymentSession;
 }
 
 export interface RuneSettlementRecheckInput {

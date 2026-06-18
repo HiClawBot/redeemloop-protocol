@@ -147,6 +147,7 @@ export interface PosPaymentIntentResponse {
     terminalId: string;
     terminalNonce: string;
     expiresAt: string;
+    checkoutToken: string;
     paymentUrl: string;
   };
 }
@@ -159,6 +160,7 @@ export interface ShortLinkPaymentIntentResponse {
     merchantId: string;
     channel: PaymentIntentResponse["channel"];
     url: string;
+    checkoutToken?: string;
     createdAt: string;
     expiresAt: string;
   };

@@ -1432,6 +1432,8 @@ describe("RedeemLoop API relayer prototype", () => {
         kind: "redeemloop.pos.payment",
         terminalId: "pos-07",
         terminalNonce: "nonce-1",
+        checkoutToken: expect.any(String),
+        paymentUrl: expect.stringContaining("/pay/"),
       },
     });
 
@@ -1483,7 +1485,8 @@ describe("RedeemLoop API relayer prototype", () => {
       },
       shortLink: {
         slug: "live-drop",
-        url: "https://pay.example/s/live-drop",
+        url: expect.stringContaining("https://pay.example/s/live-drop?token="),
+        checkoutToken: expect.any(String),
       },
     });
 
@@ -1506,6 +1509,183 @@ describe("RedeemLoop API relayer prototype", () => {
       },
     });
     expect(duplicate.statusCode).toBe(409);
+
+    await app.close();
+  });
+
+  it("lets a token-scoped public session pay an existing short-link intent while merchant API keys are enabled", async () => {
+    const txid = "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc" as const;
+    const app = await createApp({
+      chainId: 31337,
+      dryRun: true,
+      apiKeys: {
+        "coca-cola-japan": "secret",
+      },
+      evmReceiptProvider: async () => ({
+        currentBlockNumber: 15n,
+        receipt: {
+          transactionHash: txid,
+          blockNumber: 14n,
+          blockHash: "0xdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          status: "success",
+          logs: [
+            {
+              address: token,
+              topics: encodeEventTopics({
+                abi: [erc20TransferEvent],
+                eventName: "Transfer",
+                args: {
+                  from: user.address,
+                  to: operator,
+                },
+              }) as Hex[],
+              data: encodeAbiParameters([{ type: "uint256" }], [1n]),
+              logIndex: 1,
+            },
+          ],
+        },
+      }),
+    });
+    const headers = { authorization: "Bearer secret" };
+    const bindingId = await createEvmBinding(app, "public_session", "livestream", "live-store", headers);
+
+    const privateCreateDenied = await app.inject({
+      method: "POST",
+      url: "/v1/short-links/payment-intents",
+      payload: {
+        bindingId,
+        slug: "hosted-drop-denied",
+      },
+    });
+    expect(privateCreateDenied.statusCode).toBe(401);
+
+    const createResponse = await app.inject({
+      method: "POST",
+      url: "/v1/short-links/payment-intents",
+      headers,
+      payload: {
+        bindingId,
+        slug: "hosted-drop",
+        baseUrl: "https://pay.example",
+        channel: "livestream",
+        orderId: "LIVE-2001",
+      },
+    });
+    expect(createResponse.statusCode).toBe(201);
+    expect(createResponse.json()).toMatchObject({
+      shortLink: {
+        slug: "hosted-drop",
+        url: expect.stringContaining("https://pay.example/s/hosted-drop?token="),
+        checkoutToken: expect.any(String),
+      },
+    });
+    const checkoutToken = createResponse.json().shortLink.checkoutToken as string;
+    const intentId = createResponse.json().paymentIntent.intentId as string;
+
+    const privateIntentDenied = await app.inject({
+      method: "GET",
+      url: `/v1/payment-intents/${intentId}`,
+    });
+    expect(privateIntentDenied.statusCode).toBe(401);
+
+    const badTokenResponse = await app.inject({
+      method: "GET",
+      url: "/v1/public/short-links/hosted-drop?checkoutToken=wrong",
+    });
+    expect(badTokenResponse.statusCode).toBe(403);
+
+    const publicSessionResponse = await app.inject({
+      method: "GET",
+      url: `/v1/public/short-links/hosted-drop?checkoutToken=${checkoutToken}`,
+    });
+    expect(publicSessionResponse.statusCode).toBe(200);
+    expect(publicSessionResponse.json()).toMatchObject({
+      publicSession: {
+        intentId,
+        merchantId: "coca-cola-japan",
+        channel: "livestream",
+      },
+      paymentIntent: {
+        intentId,
+        status: "created",
+      },
+    });
+    expect(JSON.stringify(publicSessionResponse.json())).not.toContain(checkoutToken);
+
+    const connectResponse = await app.inject({
+      method: "POST",
+      url: `/v1/public/payment-sessions/${intentId}/connect-wallet`,
+      payload: {
+        checkoutToken,
+        payerAddress: user.address,
+      },
+    });
+    expect(connectResponse.statusCode).toBe(200);
+    expect(connectResponse.json()).toMatchObject({
+      paymentIntent: {
+        status: "wallet_connected",
+        payerAddress: user.address,
+      },
+    });
+
+    const transferResponse = await app.inject({
+      method: "POST",
+      url: `/v1/public/payment-sessions/${intentId}/transfer-requested`,
+      payload: {
+        checkoutToken,
+        payerAddress: user.address,
+      },
+    });
+    expect(transferResponse.statusCode).toBe(200);
+    expect(transferResponse.json()).toMatchObject({
+      paymentIntent: {
+        status: "transfer_requested",
+      },
+      transfer: {
+        amount: "1",
+        evm: {
+          transaction: {
+            args: [operator, "1"],
+          },
+        },
+      },
+    });
+
+    const broadcastResponse = await app.inject({
+      method: "POST",
+      url: `/v1/public/payment-sessions/${intentId}/broadcasted`,
+      payload: {
+        checkoutToken,
+        txid,
+      },
+    });
+    expect(broadcastResponse.statusCode).toBe(200);
+    expect(broadcastResponse.json()).toMatchObject({
+      paymentIntent: {
+        status: "broadcasted",
+      },
+      txid,
+    });
+
+    const recheckResponse = await app.inject({
+      method: "POST",
+      url: `/v1/public/payment-sessions/${intentId}/settlement/evm/recheck`,
+      payload: {
+        checkoutToken,
+        txid,
+        from: user.address,
+      },
+    });
+    expect(recheckResponse.statusCode).toBe(201);
+    expect(recheckResponse.json()).toMatchObject({
+      trusted: true,
+      paymentIntent: {
+        status: "paid",
+      },
+      publicSession: {
+        intentId,
+      },
+    });
 
     await app.close();
   });
@@ -1992,6 +2172,7 @@ async function createEvmBinding(
   suffix: string,
   platform: "pos" | "livestream" | "woocommerce" | "shopify" | "custom",
   storeId: string,
+  headers?: Record<string, string>,
 ): Promise<string> {
   const merchantId = "coca-cola-japan";
   const entitlementId = `ent_${suffix}`;
@@ -1999,6 +2180,7 @@ async function createEvmBinding(
   await app.inject({
     method: "POST",
     url: "/v1/merchants",
+    headers,
     payload: {
       merchantId,
       name: "Coca-Cola Japan",
@@ -2007,6 +2189,7 @@ async function createEvmBinding(
   await app.inject({
     method: "POST",
     url: "/v1/merchant-vaults",
+    headers,
     payload: {
       vaultId: `vault_${suffix}`,
       merchantId,
@@ -2018,6 +2201,7 @@ async function createEvmBinding(
   await app.inject({
     method: "POST",
     url: "/v1/entitlements",
+    headers,
     payload: {
       entitlementId,
       merchantId,
@@ -2029,6 +2213,7 @@ async function createEvmBinding(
   const response = await app.inject({
     method: "POST",
     url: "/v1/bindings",
+    headers,
     payload: {
       bindingId,
       merchantId,

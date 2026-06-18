@@ -50,6 +50,11 @@ import type {
   WebhookEndpoint,
   WebhookEvent,
   PosPaymentIntentResponse,
+  PublicBroadcastedResponse,
+  PublicEvmSettlementRecheckResponse,
+  PublicPaymentSessionResponse,
+  PublicPaymentSessionTokenInput,
+  PublicTransferRequestResponse,
 } from "./types.js";
 import type { Entitlement, RedeemLoopPaymentIntent, RedemptionBinding } from "@redeemloop/core";
 
@@ -167,6 +172,54 @@ export class RedeemLoopClient {
 
   async getShortLink(slug: string): Promise<ShortLinkPaymentIntentResponse> {
     return this.request(`/v1/short-links/${encodeURIComponent(slug)}`);
+  }
+
+  async getPublicShortLink(slug: string, input: PublicPaymentSessionTokenInput): Promise<PublicPaymentSessionResponse> {
+    return this.request(this.withQuery(`/v1/public/short-links/${encodeURIComponent(slug)}`, input));
+  }
+
+  async getPublicPaymentSession(intentId: string, input: PublicPaymentSessionTokenInput): Promise<PublicPaymentSessionResponse> {
+    return this.request(this.withQuery(`/v1/public/payment-sessions/${encodeURIComponent(intentId)}`, input));
+  }
+
+  async connectPublicPaymentSessionWallet(
+    intentId: string,
+    input: PublicPaymentSessionTokenInput & ConnectWalletInput,
+  ): Promise<PublicPaymentSessionResponse> {
+    return this.request(`/v1/public/payment-sessions/${encodeURIComponent(intentId)}/connect-wallet`, {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+  }
+
+  async requestPublicPaymentSessionTransfer(
+    intentId: string,
+    input: PublicPaymentSessionTokenInput & TransferRequestInput,
+  ): Promise<PublicTransferRequestResponse> {
+    return this.request(`/v1/public/payment-sessions/${encodeURIComponent(intentId)}/transfer-requested`, {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+  }
+
+  async markPublicPaymentSessionBroadcasted(
+    intentId: string,
+    input: PublicPaymentSessionTokenInput & BroadcastedInput,
+  ): Promise<PublicBroadcastedResponse> {
+    return this.request(`/v1/public/payment-sessions/${encodeURIComponent(intentId)}/broadcasted`, {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+  }
+
+  async recheckPublicPaymentSessionEvmSettlement(
+    intentId: string,
+    input: PublicPaymentSessionTokenInput & EvmSettlementRecheckInput,
+  ): Promise<PublicEvmSettlementRecheckResponse> {
+    return this.request(`/v1/public/payment-sessions/${encodeURIComponent(intentId)}/settlement/evm/recheck`, {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
   }
 
   async expireStalePaymentIntents(input: ExpireStalePaymentIntentsInput = {}): Promise<ExpireStalePaymentIntentsResponse> {

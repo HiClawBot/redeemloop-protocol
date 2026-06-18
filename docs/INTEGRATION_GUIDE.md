@@ -1,4 +1,4 @@
-# RedeemLoop Integration Guide v0.8.0 / 集成指南 v0.8.0
+# RedeemLoop Integration Guide v0.9.0 / 集成指南 v0.9.0
 
 ## English
 
@@ -31,7 +31,25 @@ For Bitcoin Rune wallet/indexer beta support and certification-track hardening, 
 For Fractal and Inscription/NFT adapter alpha boundaries, see [Fractal and Inscription/NFT Adapter Alpha](FRACTAL_INSCRIPTION_ALPHA.md).
 For POS QR and livestream short-link pilot APIs, see [POS QR and Short-Link Pilot](POS_QR_SHORT_LINK_PILOT.md).
 
-### 2.1 Bitcoin Rune Wallet Path
+### 2.1 Hosted Checkout Page
+
+For POS or livestream flows, the merchant backend creates the PaymentIntent through `POST /v1/pos/payment-intents` or `POST /v1/short-links/payment-intents`. The response includes a `checkoutToken` and a hosted URL such as:
+
+```text
+https://pay.example/pay/pi_...?token=...
+https://pay.example/s/live-drop?token=...
+```
+
+Customer-facing pages should then use only the public session APIs:
+
+```ts
+const publicClient = new RedeemLoopClient("https://api.example.com");
+const session = await publicClient.getPublicShortLink("live-drop", { checkoutToken });
+```
+
+The public APIs can connect the wallet, prepare the transfer, mark the tx as broadcasted, and run trusted EVM settlement recheck without exposing the merchant API key. This is the recommended alpha path for POS QR and short-link checkout pages.
+
+### 2.2 Bitcoin Rune Wallet Path
 
 For real merchant Rune integration, prefer wallet-native transfer methods before the server-side PSBT fixture boundary:
 
@@ -330,7 +348,25 @@ Bitcoin Rune 钱包/索引器 beta 支持和认证轨道加固请见 [Bitcoin Ru
 Fractal 和 Inscription/NFT adapter alpha boundaries 请见 [Fractal and Inscription/NFT Adapter Alpha](FRACTAL_INSCRIPTION_ALPHA.md)。
 POS QR 和直播短链 pilot API 请见 [POS QR and Short-Link Pilot](POS_QR_SHORT_LINK_PILOT.md)。
 
-### 2.1 Bitcoin Rune 钱包路径
+### 2.1 Hosted Checkout Page
+
+POS 或直播场景中，商户后端先通过 `POST /v1/pos/payment-intents` 或 `POST /v1/short-links/payment-intents` 创建 PaymentIntent。响应会包含 `checkoutToken` 和 hosted URL，例如：
+
+```text
+https://pay.example/pay/pi_...?token=...
+https://pay.example/s/live-drop?token=...
+```
+
+用户侧页面只应使用 public session API：
+
+```ts
+const publicClient = new RedeemLoopClient("https://api.example.com");
+const session = await publicClient.getPublicShortLink("live-drop", { checkoutToken });
+```
+
+Public API 可以连接钱包、生成转账请求、记录 tx broadcasted，并触发可信 EVM settlement recheck，不需要暴露商户 API key。这是 POS QR 和短链 checkout page 的 alpha 推荐路径。
+
+### 2.2 Bitcoin Rune 钱包路径
 
 真实商户 Rune 集成应优先使用钱包原生转账方法，而不是服务端 PSBT fixture boundary：
 

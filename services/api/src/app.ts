@@ -1,6 +1,6 @@
 import cors from "@fastify/cors";
 import Fastify, { type FastifyInstance, type FastifyReply } from "fastify";
-import { randomBytes, timingSafeEqual } from "node:crypto";
+import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import {
   buildErc20BalanceCheckRequest,
   buildErc20TransferRequest,
@@ -255,6 +255,15 @@ interface ShortPaymentLinkRecord {
   expiresAt: string;
 }
 
+interface PublicPaymentSessionRecord {
+  intentId: string;
+  merchantId: string;
+  tokenHash: string;
+  channel: "website" | "checkout" | "pos" | "miniapp" | "livestream" | "ad";
+  createdAt: string;
+  expiresAt: string;
+}
+
 const voucherAbi = parseAbi([
   "function collectWithAuthorization((address user,address voucherToken,uint256 tokenId,uint256 amount,bytes32 merchantId,bytes32 storeId,bytes32 terminalId,bytes32 termsHash,uint8 redemptionMode,uint256 nonce,uint256 deadline) authorization, bytes signature) returns (bytes32)",
   "function burnWithAuthorization((address user,address voucherToken,uint256 tokenId,uint256 amount,bytes32 merchantId,bytes32 storeId,bytes32 terminalId,bytes32 termsHash,uint8 redemptionMode,uint256 nonce,uint256 deadline) authorization, bytes signature) returns (bytes32)",
@@ -269,6 +278,7 @@ export async function createApp(config: Partial<ApiConfig> = {}): Promise<Fastif
   const merchantReceivers = new PersistentMap<string, MerchantReceiverRecord>(() => schedulePersist());
   const commercePayments = new PersistentMap<string, CommercePaymentRecord>(() => schedulePersist());
   const shortLinks = new PersistentMap<string, ShortPaymentLinkRecord>(() => schedulePersist());
+  const publicPaymentSessions = new PersistentMap<string, PublicPaymentSessionRecord>(() => schedulePersist());
   const merchants = new PersistentMap<string, MerchantRecord>(() => schedulePersist());
   const merchantVaults = new PersistentMap<string, MerchantVaultRecord>(() => schedulePersist());
   const entitlements = new PersistentMap<string, Entitlement>(() => schedulePersist());
@@ -331,6 +341,7 @@ export async function createApp(config: Partial<ApiConfig> = {}): Promise<Fastif
       webhookDeliveries,
       auditLogs,
       shortLinks,
+      publicPaymentSessions,
       registeredTerminals,
       terminalPaymentNonces,
       redemptionSubmissions,
@@ -358,6 +369,7 @@ export async function createApp(config: Partial<ApiConfig> = {}): Promise<Fastif
             webhookDeliveries,
             auditLogs,
             shortLinks,
+            publicPaymentSessions,
             registeredTerminals,
             terminalPaymentNonces,
             redemptionSubmissions,
@@ -389,6 +401,7 @@ export async function createApp(config: Partial<ApiConfig> = {}): Promise<Fastif
           webhookDeliveries,
           auditLogs,
           shortLinks,
+          publicPaymentSessions,
           registeredTerminals,
           terminalPaymentNonces,
           redemptionSubmissions,
@@ -847,6 +860,10 @@ export async function createApp(config: Partial<ApiConfig> = {}): Promise<Fastif
         summary: "POS QR PaymentIntent created",
         after: { status: intent.status, storeId, terminalId, terminalNonce },
       });
+      const checkoutToken = createCheckoutToken();
+      publicPaymentSessions.set(intent.intentId, createPublicPaymentSession(intent, checkoutToken));
+      const paymentPath = `/pay/${encodeURIComponent(intent.intentId)}?token=${encodeURIComponent(checkoutToken)}`;
+      const baseUrl = optionalString(body.baseUrl, "baseUrl");
       const qr = {
         kind: "redeemloop.pos.payment",
         intentId: intent.intentId,
@@ -855,7 +872,8 @@ export async function createApp(config: Partial<ApiConfig> = {}): Promise<Fastif
         terminalId,
         terminalNonce,
         expiresAt: intent.expiresAt,
-        paymentUrl: `/redeemloop/pay/${intent.intentId}`,
+        checkoutToken,
+        paymentUrl: baseUrl ? `${baseUrl.replace(/\/+$/, "")}${paymentPath}` : paymentPath,
       };
       return reply.code(201).send({ paymentIntent: intent, qr });
     } catch (error) {
@@ -882,16 +900,18 @@ export async function createApp(config: Partial<ApiConfig> = {}): Promise<Fastif
       }, binding, now);
       paymentIntents.set(intent.intentId, intent);
       const baseUrl = optionalString(body.baseUrl, "baseUrl") ?? "https://redeemloop.local";
+      const checkoutToken = createCheckoutToken();
       const shortLink: ShortPaymentLinkRecord = {
         slug,
         intentId: intent.intentId,
         merchantId: intent.merchantId,
         channel: intent.channel,
-        url: `${baseUrl.replace(/\/+$/, "")}/s/${encodeURIComponent(slug)}`,
+        url: `${baseUrl.replace(/\/+$/, "")}/s/${encodeURIComponent(slug)}?token=${encodeURIComponent(checkoutToken)}`,
         createdAt: now.toISOString(),
         expiresAt: intent.expiresAt,
       };
       shortLinks.set(slug, shortLink);
+      publicPaymentSessions.set(intent.intentId, createPublicPaymentSession(intent, checkoutToken));
       recordAuditLog(auditLogs, {
         merchantId: intent.merchantId,
         action: "payment_intent.short_link_created",
@@ -900,7 +920,7 @@ export async function createApp(config: Partial<ApiConfig> = {}): Promise<Fastif
         summary: "Short-link PaymentIntent created",
         after: { status: intent.status, slug, channel: intent.channel },
       });
-      return reply.code(201).send({ paymentIntent: intent, shortLink });
+      return reply.code(201).send({ paymentIntent: intent, shortLink: { ...shortLink, checkoutToken } });
     } catch (error) {
       return reply.code(400).send(errorBody(error));
     }
@@ -913,6 +933,209 @@ export async function createApp(config: Partial<ApiConfig> = {}): Promise<Fastif
     const paymentIntent = paymentIntents.get(shortLink.intentId);
     if (!paymentIntent) return reply.code(404).send({ error: "PaymentIntent not found for short link" });
     return { shortLink, paymentIntent };
+  });
+
+  app.get("/v1/public/short-links/:slug", async (request, reply) => {
+    try {
+      const params = request.params as { slug: string };
+      const shortLink = shortLinks.get(params.slug);
+      if (!shortLink) return reply.code(404).send({ error: "Short link not found" });
+      const publicSession = resolvePublicPaymentSession({
+        intentId: shortLink.intentId,
+        checkoutToken: checkoutTokenFromRequest(request),
+        paymentIntents,
+        publicPaymentSessions,
+        reply,
+      });
+      if (!publicSession) return reply;
+      return buildPublicPaymentSessionResponse(publicSession.intent, publicSession.session, shortLink);
+    } catch (error) {
+      return reply.code(400).send(errorBody(error));
+    }
+  });
+
+  app.get("/v1/public/payment-sessions/:intentId", async (request, reply) => {
+    try {
+      const params = request.params as { intentId: string };
+      const publicSession = resolvePublicPaymentSession({
+        intentId: params.intentId,
+        checkoutToken: checkoutTokenFromRequest(request),
+        paymentIntents,
+        publicPaymentSessions,
+        reply,
+      });
+      if (!publicSession) return reply;
+      return buildPublicPaymentSessionResponse(publicSession.intent, publicSession.session);
+    } catch (error) {
+      return reply.code(400).send(errorBody(error));
+    }
+  });
+
+  app.post("/v1/public/payment-sessions/:intentId/connect-wallet", async (request, reply) => {
+    try {
+      const params = request.params as { intentId: string };
+      const body = recordOf(request.body);
+      const publicSession = resolvePublicPaymentSession({
+        intentId: params.intentId,
+        checkoutToken: checkoutTokenFromRequest(request),
+        paymentIntents,
+        publicPaymentSessions,
+        reply,
+      });
+      if (!publicSession) return reply;
+      const result = updatePaymentIntent({ intentId: publicSession.intent.intentId }, paymentIntents, "wallet_connected", {
+        payerAddress: requireString(body.payerAddress, "payerAddress"),
+      }, auditLogs);
+      if (!result) return reply.code(404).send({ error: "PaymentIntent not found" });
+      return buildPublicPaymentSessionResponse(result, publicSession.session);
+    } catch (error) {
+      return reply.code(400).send(errorBody(error));
+    }
+  });
+
+  app.post("/v1/public/payment-sessions/:intentId/transfer-requested", async (request, reply) => {
+    try {
+      const params = request.params as { intentId: string };
+      const body = recordOf(request.body);
+      const publicSession = resolvePublicPaymentSession({
+        intentId: params.intentId,
+        checkoutToken: checkoutTokenFromRequest(request),
+        paymentIntents,
+        publicPaymentSessions,
+        reply,
+      });
+      if (!publicSession) return reply;
+      const intent = publicSession.intent;
+      const asset = optionalString(body.assetId, "assetId") ? findAcceptedAsset(intent, requireString(body.assetId, "assetId")) : intent.selectedAsset ?? intent.acceptedAssets[0];
+      const next = updatePaymentIntent({ intentId: intent.intentId }, paymentIntents, "transfer_requested", {
+        selectedAsset: asset,
+        payerAddress: optionalString(body.payerAddress, "payerAddress") ?? intent.payerAddress,
+        merchantVault: findMerchantVaultAddress(bindings.get(intent.bindingId), asset),
+      }, auditLogs);
+      if (!next) return reply.code(404).send({ error: "PaymentIntent not found" });
+      return {
+        ...buildPublicPaymentSessionResponse(next, publicSession.session),
+        transfer: {
+          to: next.merchantVault,
+          asset,
+          amount: asset.requiredAmount,
+          settlementPolicy: next.settlementPolicy,
+          ...buildTenderTransferRequest(next, asset, body),
+        },
+      };
+    } catch (error) {
+      return reply.code(400).send(errorBody(error));
+    }
+  });
+
+  app.post("/v1/public/payment-sessions/:intentId/broadcasted", async (request, reply) => {
+    try {
+      const params = request.params as { intentId: string };
+      const body = recordOf(request.body);
+      const publicSession = resolvePublicPaymentSession({
+        intentId: params.intentId,
+        checkoutToken: checkoutTokenFromRequest(request),
+        paymentIntents,
+        publicPaymentSessions,
+        reply,
+      });
+      if (!publicSession) return reply;
+      const txid = requireString(body.txid, "txid");
+      const updated = updatePaymentIntent({ intentId: publicSession.intent.intentId }, paymentIntents, "broadcasted", {
+        broadcastTxid: txid,
+      }, auditLogs);
+      if (!updated) return reply.code(404).send({ error: "PaymentIntent not found" });
+      return {
+        ...buildPublicPaymentSessionResponse(updated, publicSession.session),
+        txid,
+      };
+    } catch (error) {
+      return reply.code(400).send(errorBody(error));
+    }
+  });
+
+  app.post("/v1/public/payment-sessions/:intentId/settlement/evm/recheck", async (request, reply) => {
+    try {
+      const params = request.params as { intentId: string };
+      const body = recordOf(request.body);
+      const publicSession = resolvePublicPaymentSession({
+        intentId: params.intentId,
+        checkoutToken: checkoutTokenFromRequest(request),
+        paymentIntents,
+        publicPaymentSessions,
+        reply,
+      });
+      if (!publicSession) return reply;
+      const intent = publicSession.intent;
+      const asset = intent.selectedAsset ?? intent.acceptedAssets[0];
+      if (asset.chainNamespace !== "eip155" || asset.assetType !== "erc20") {
+        return reply.code(400).send({ error: "Public EVM settlement recheck currently supports EVM ERC-20 assets" });
+      }
+      const chainId = asset.chainId;
+      if (chainId === undefined) throw new Error("EVM settlement recheck requires asset.chainId");
+      const txid = normalizeOptionalHex(body.txid ?? intent.broadcastTxid, "txid");
+      if (!txid) throw new Error("txid is required; call broadcasted first or pass txid");
+      const from = requireString(body.from ?? intent.payerAddress, "from");
+      const minConfirmations = normalizePositiveInteger(body.minConfirmations ?? resolvedConfig.evmMinConfirmations, "minConfirmations");
+      const receiptResult = await fetchEvmReceipt(txid, chainId, resolvedConfig);
+      const proof = verifyErc20TransferReceipt({
+        proofId: optionalString(body.proofId, "proofId"),
+        intentId: intent.intentId,
+        txid,
+        receipt: receiptResult.receipt,
+        asset,
+        from,
+        to: intent.merchantVault,
+        amount: asset.requiredAmount,
+        currentBlockNumber: receiptResult.currentBlockNumber,
+        minConfirmations,
+      });
+      assertValidVoucherPaymentProof(proof, intent);
+      const idempotencyKey = proofIdempotencyKey(proof);
+      const existingProofId = proofIdempotency.get(idempotencyKey);
+      if (existingProofId) {
+        return { ...settlementProofs.get(existingProofId), duplicate: true, trusted: true };
+      }
+      settlementProofs.set(proof.proofId, proof);
+      proofIdempotency.set(idempotencyKey, proof.proofId);
+
+      const nextIntent = advanceIntentFromProof(intent, proof);
+      paymentIntents.set(nextIntent.intentId, nextIntent);
+      recordAuditLog(auditLogs, {
+        merchantId: nextIntent.merchantId,
+        action: "payment_intent.public_evm_recheck",
+        entityType: "payment_intent",
+        entityId: nextIntent.intentId,
+        summary: "PaymentIntent advanced from token-scoped public EVM recheck",
+        before: { status: intent.status },
+        after: { status: nextIntent.status, proofId: proof.proofId },
+      });
+      const commerce = proof.status === "confirmed" || proof.status === "finalized"
+        ? await markIntentCommercePaid(nextIntent, proof, bindings.get(nextIntent.bindingId), resolvedConfig, markPaidIdempotency)
+        : undefined;
+      const webhookEvent = nextIntent.status === "paid"
+        ? enqueuePaymentIntentWebhookEvent({
+            eventType: "payment_intent.paid",
+            intent: nextIntent,
+            proof,
+            webhookEndpoints,
+            webhookEvents,
+            webhookDeliveries,
+            maxAttempts: resolvedConfig.webhookMaxAttempts,
+          })
+        : undefined;
+
+      return reply.code(201).send({
+        ...proof,
+        trusted: true,
+        paymentIntent: paymentIntents.get(nextIntent.intentId),
+        publicSession: publicSession.session,
+        commerce,
+        webhookEvent,
+      });
+    } catch (error) {
+      return reply.code(400).send(errorBody(error));
+    }
   });
 
   app.get("/v1/payment-intents", async (request) => {
@@ -1808,6 +2031,7 @@ interface SnapshotStores {
   webhookDeliveries: Map<string, WebhookDeliveryRecord>;
   auditLogs: Map<string, AuditLogRecord>;
   shortLinks: Map<string, ShortPaymentLinkRecord>;
+  publicPaymentSessions: Map<string, PublicPaymentSessionRecord>;
   registeredTerminals: Set<string>;
   terminalPaymentNonces: Set<string>;
   redemptionSubmissions: Set<string>;
@@ -1832,6 +2056,7 @@ function createApiSnapshot(stores: SnapshotStores): RedeemLoopApiSnapshot {
     webhookDeliveries: [...stores.webhookDeliveries.values()],
     auditLogs: [...stores.auditLogs.values()],
     shortLinks: [...stores.shortLinks.values()],
+    publicPaymentSessions: [...stores.publicPaymentSessions.values()],
     registeredTerminals: [...stores.registeredTerminals.values()],
     terminalPaymentNonces: [...stores.terminalPaymentNonces.values()],
     redemptionSubmissions: [...stores.redemptionSubmissions.values()],
@@ -1856,6 +2081,9 @@ function hydrateApiSnapshot(snapshot: RedeemLoopApiSnapshot, stores: SnapshotSto
   for (const delivery of (snapshot.webhookDeliveries ?? []) as WebhookDeliveryRecord[]) stores.webhookDeliveries.set(delivery.deliveryId, delivery);
   for (const auditLog of (snapshot.auditLogs ?? []) as AuditLogRecord[]) stores.auditLogs.set(auditLog.auditId, auditLog);
   for (const shortLink of (snapshot.shortLinks ?? []) as ShortPaymentLinkRecord[]) stores.shortLinks.set(shortLink.slug, shortLink);
+  for (const publicSession of (snapshot.publicPaymentSessions ?? []) as PublicPaymentSessionRecord[]) {
+    stores.publicPaymentSessions.set(publicSession.intentId, publicSession);
+  }
   for (const key of snapshot.registeredTerminals ?? []) stores.registeredTerminals.add(key);
   for (const key of snapshot.terminalPaymentNonces ?? []) stores.terminalPaymentNonces.add(key);
   for (const key of snapshot.redemptionSubmissions ?? []) stores.redemptionSubmissions.add(key);
@@ -1880,6 +2108,7 @@ function resolveRequestMerchantId(
   const body = recordOf(request.body);
   const params = recordOf(request.params);
   const query = recordOf(request.query);
+  if (request.url.startsWith("/v1/public/")) return { required: false };
   const directMerchantId = stringOf(body.merchantId) ?? stringOf(params.merchantId) ?? stringOf(query.merchantId);
   if (directMerchantId) return { required: true, merchantId: directMerchantId };
 
@@ -1990,6 +2219,92 @@ function constantTimeEquals(left: string, right: string): boolean {
   const rightBuffer = Buffer.from(right);
   if (leftBuffer.length !== rightBuffer.length) return false;
   return timingSafeEqual(leftBuffer, rightBuffer);
+}
+
+function createCheckoutToken(): string {
+  return randomBytes(24).toString("hex");
+}
+
+function hashCheckoutToken(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
+}
+
+function createPublicPaymentSession(intent: RedeemLoopPaymentIntent, checkoutToken: string): PublicPaymentSessionRecord {
+  return {
+    intentId: intent.intentId,
+    merchantId: intent.merchantId,
+    tokenHash: hashCheckoutToken(checkoutToken),
+    channel: intent.channel,
+    createdAt: new Date().toISOString(),
+    expiresAt: intent.expiresAt,
+  };
+}
+
+function checkoutTokenFromRequest(request: { body?: unknown; query?: unknown }): string | undefined {
+  const body = recordOf(request.body);
+  const query = recordOf(request.query);
+  return stringOf(body.checkoutToken) ?? stringOf(body.token) ?? stringOf(query.checkoutToken) ?? stringOf(query.token);
+}
+
+function resolvePublicPaymentSession(input: {
+  intentId: string;
+  checkoutToken?: string;
+  paymentIntents: Map<string, RedeemLoopPaymentIntent>;
+  publicPaymentSessions: Map<string, PublicPaymentSessionRecord>;
+  reply: FastifyReply;
+}): { intent: RedeemLoopPaymentIntent; session: PublicPaymentSessionRecord } | undefined {
+  if (!input.checkoutToken) {
+    input.reply.code(401).send({ error: "checkoutToken is required" });
+    return undefined;
+  }
+  const session = input.publicPaymentSessions.get(input.intentId);
+  if (!session) {
+    input.reply.code(404).send({ error: "Public payment session not found" });
+    return undefined;
+  }
+  if (!constantTimeEquals(hashCheckoutToken(input.checkoutToken), session.tokenHash)) {
+    input.reply.code(403).send({ error: "Invalid checkoutToken" });
+    return undefined;
+  }
+  const intent = input.paymentIntents.get(input.intentId);
+  if (!intent) {
+    input.reply.code(404).send({ error: "PaymentIntent not found" });
+    return undefined;
+  }
+  if (Date.parse(session.expiresAt) <= Date.now() && intent.status !== "paid" && intent.status !== "confirmed") {
+    input.reply.code(410).send({ error: "Public payment session has expired", paymentIntent: intent });
+    return undefined;
+  }
+  return { intent, session };
+}
+
+function buildPublicPaymentSessionResponse(
+  paymentIntent: RedeemLoopPaymentIntent,
+  publicSession: PublicPaymentSessionRecord,
+  shortLink?: ShortPaymentLinkRecord,
+) {
+  return {
+    publicSession: {
+      intentId: publicSession.intentId,
+      merchantId: publicSession.merchantId,
+      channel: publicSession.channel,
+      expiresAt: publicSession.expiresAt,
+      createdAt: publicSession.createdAt,
+    },
+    shortLink: shortLink ? { ...shortLink, url: redactCheckoutTokenFromUrl(shortLink.url) } : undefined,
+    paymentIntent,
+  };
+}
+
+function redactCheckoutTokenFromUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    parsed.searchParams.delete("token");
+    parsed.searchParams.delete("checkoutToken");
+    return parsed.toString();
+  } catch {
+    return url.replace(/([?&])(token|checkoutToken)=[^&]+&?/g, "$1").replace(/[?&]$/, "");
+  }
 }
 
 function recordOf(value: unknown): Record<string, unknown> {

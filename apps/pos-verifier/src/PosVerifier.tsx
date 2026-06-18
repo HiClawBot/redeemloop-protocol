@@ -65,7 +65,7 @@ const initialForm: FormState = {
   terminalId: "pos-07",
   terminalNonce: "nonce-1",
   shortSlug: "live-drop",
-  shortBaseUrl: "https://pay.example",
+  shortBaseUrl: "http://localhost:3000",
   payerAddress: "0x0000000000000000000000000000000000000123",
   walletBalance: "1",
   txid: "0x1234",
@@ -227,6 +227,7 @@ export function PosVerifier() {
         storeId: form.storeId,
         terminalId: form.terminalId,
         terminalNonce: form.terminalNonce,
+        baseUrl: form.shortBaseUrl,
         orderId: form.orderId,
         payerAddress: effectivePayer,
       });

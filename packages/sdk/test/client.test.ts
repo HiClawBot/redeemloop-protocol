@@ -54,6 +54,25 @@ describe("RedeemLoopClient", () => {
     await client.createPosPaymentIntent({ bindingId: "bind_test", terminalId: "pos-07", terminalNonce: "nonce-1" });
     await client.createShortLinkPaymentIntent({ bindingId: "bind_test", slug: "live-drop" });
     await client.getShortLink("live-drop");
+    await client.getPublicShortLink("live-drop", { checkoutToken: "checkout-secret" });
+    await client.getPublicPaymentSession("pi_test", { checkoutToken: "checkout-secret" });
+    await client.connectPublicPaymentSessionWallet("pi_test", {
+      checkoutToken: "checkout-secret",
+      payerAddress: "0x0000000000000000000000000000000000000123",
+    });
+    await client.requestPublicPaymentSessionTransfer("pi_test", {
+      checkoutToken: "checkout-secret",
+      payerAddress: "0x0000000000000000000000000000000000000123",
+    });
+    await client.markPublicPaymentSessionBroadcasted("pi_test", {
+      checkoutToken: "checkout-secret",
+      txid: "0x1234",
+    });
+    await client.recheckPublicPaymentSessionEvmSettlement("pi_test", {
+      checkoutToken: "checkout-secret",
+      txid: "0x1234",
+      from: "0x0000000000000000000000000000000000000123",
+    });
     await client.connectWallet("pi_test", { payerAddress: "0x0000000000000000000000000000000000000123" });
     await client.checkBalance("pi_test", {
       payerAddress: "0x0000000000000000000000000000000000000123",
@@ -97,6 +116,12 @@ describe("RedeemLoopClient", () => {
       "https://api.example.test/v1/pos/payment-intents",
       "https://api.example.test/v1/short-links/payment-intents",
       "https://api.example.test/v1/short-links/live-drop",
+      "https://api.example.test/v1/public/short-links/live-drop?checkoutToken=checkout-secret",
+      "https://api.example.test/v1/public/payment-sessions/pi_test?checkoutToken=checkout-secret",
+      "https://api.example.test/v1/public/payment-sessions/pi_test/connect-wallet",
+      "https://api.example.test/v1/public/payment-sessions/pi_test/transfer-requested",
+      "https://api.example.test/v1/public/payment-sessions/pi_test/broadcasted",
+      "https://api.example.test/v1/public/payment-sessions/pi_test/settlement/evm/recheck",
       "https://api.example.test/v1/payment-intents/pi_test/connect-wallet",
       "https://api.example.test/v1/payment-intents/pi_test/check-balance",
       "https://api.example.test/v1/payment-intents/pi_test/transfer-requested",

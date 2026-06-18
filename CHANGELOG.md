@@ -4,6 +4,24 @@
 
 No unreleased changes yet.
 
+## v0.9.0 - 2026-06-18
+
+### Added
+
+- Hosted payment pages at `/s/[slug]` and `/pay/[intentId]`.
+- Token-scoped public payment session API for short-link and POS QR checkout.
+- POS QR and short-link creation responses now include `checkoutToken` and hosted checkout URLs.
+- SDK helpers for public session lookup, wallet connect, transfer request, broadcast, and trusted EVM recheck.
+- Public session tests covering merchant API key protection and customer-side payment flow.
+
+### 中文说明
+
+- 新增 `/s/[slug]` 和 `/pay/[intentId]` hosted payment pages。
+- 新增面向短链和 POS QR checkout 的 token-scoped public payment session API。
+- POS QR 和短链创建响应新增 `checkoutToken` 和 hosted checkout URL。
+- SDK 新增 public session lookup、钱包连接、转账请求、broadcast 和可信 EVM recheck helper。
+- 新增 public session 测试，覆盖商户 API key 保护和用户侧支付流程。
+
 ## v0.8.0 - 2026-06-18
 
 ### Added

@@ -11,7 +11,7 @@ Existing voucher asset
         ->
 Asset Binding
         ->
-Voucher Tender button / POS QR
+Voucher Tender button / POS QR / hosted payment link
         ->
 PaymentIntent
         ->
@@ -44,6 +44,7 @@ This release fixes the first public implementation scope:
 - Rune production certification track with indexer failover adapter boundary and manual-review recovery for indexer lag.
 - Fractal and Inscription/NFT adapter alpha boundaries with mocked ownership and transfer proof tests.
 - POS QR and livestream short-link pilot APIs backed by PaymentIntent reconciliation.
+- Hosted Payment Page Alpha for token-scoped POS QR and short-link checkout URLs.
 - Public Merchant Sandbox with Docker Compose, `.env.example`, environment checks, and API reference docs.
 - Bitcoin Rune Wallet/Indexer Beta adapter surface with UniSat `sendRunes`, Xverse `runes_transfer`, Xverse API-backed Rune balance/UTXO/activity verification, API-level Rune settlement recheck, and a clearly labeled PSBT request fixture boundary.
 - Merchant receiving address / vault confirmation model.
@@ -58,7 +59,7 @@ RedeemLoop does:
 
 - Register an existing voucher asset descriptor.
 - Bind that asset to an entitlement, SKU, receiving address, and settlement policy.
-- Create payment buttons, checkout flows, POS QR links, or short links.
+- Create payment buttons, checkout flows, POS QR links, hosted payment pages, or short links.
 - Help wallets transfer the required asset to the merchant receiving address.
 - Verify receipt through chain events or indexers.
 - Notify commerce systems that an order is paid.
@@ -83,7 +84,7 @@ packages/react     React provider and Pay Button for merchant embeds
 packages/widget    Script-tag widget for non-React merchant stores
 packages/contracts EVM ERC-20 voucher example contracts only
 services/api       Fastify API for bindings, intents, proofs, webhooks, commerce adapters
-apps/pos-verifier  Local Phase 0 console, POS-style QR demo, demo store page, EVM live certification console, and merchant admin console
+apps/pos-verifier  Local Phase 0 console, hosted payment pages, POS-style QR demo, demo store page, EVM live certification console, and merchant admin console
 plugins/woocommerce WooCommerce sandbox payment gateway plugin
 docs/              v0.2 protocol, boundary, API, integration, and construction docs
 whitepaper/        v0.2 whitepaper source and rendered files
@@ -156,6 +157,8 @@ Open `http://localhost:3000`, keep the API at `http://localhost:8787`, then run:
 5. Confirm Receipt.
 6. Review the dry-run mark-as-paid adapter output.
 
+For hosted checkout testing, use the POS console to create a POS QR or short link with `Short Base URL` set to the running payment app, for example `http://localhost:3000`. Open the generated `/pay/:intentId?token=...` or `/s/:slug?token=...` URL in a wallet-enabled browser. The hosted page uses token-scoped public session APIs, so customers do not need the merchant API key.
+
 For EVM ERC-20 voucher assets, `Request Transfer` returns a wallet-ready `transfer(merchantVault, requiredAmount)` transaction request with contract address, calldata, chain ID, and `value: 0x0`.
 `Check Balance` returns a wallet-ready `balanceOf(payer)` call request and, when a balance is supplied, evaluates whether the payer holds enough voucher assets.
 
@@ -220,6 +223,12 @@ POST /v1/payment-intents/:intentId/select-asset
 POST /v1/payment-intents/:intentId/check-balance
 POST /v1/payment-intents/:intentId/transfer-requested
 POST /v1/payment-intents/:intentId/broadcasted
+GET  /v1/public/short-links/:slug?checkoutToken=...
+GET  /v1/public/payment-sessions/:intentId?checkoutToken=...
+POST /v1/public/payment-sessions/:intentId/connect-wallet
+POST /v1/public/payment-sessions/:intentId/transfer-requested
+POST /v1/public/payment-sessions/:intentId/broadcasted
+POST /v1/public/payment-sessions/:intentId/settlement/evm/recheck
 POST /v1/settlement/proofs
 POST /v1/settlement/evm/recheck/:intentId
 POST /v1/webhook-endpoints
@@ -329,7 +338,7 @@ RedeemLoop 是一个非发行型、多链提货券支付网关。
         ->
 Asset Binding
         ->
-Voucher Tender 按钮 / POS QR
+Voucher Tender 按钮 / POS QR / hosted payment link
         ->
 PaymentIntent
         ->
@@ -362,6 +371,7 @@ PaymentIntent
 - Rune production certification track：包含 indexer failover adapter boundary 和 indexer lag manual-review recovery。
 - Fractal 和 Inscription/NFT adapter alpha boundaries：包含 mocked ownership 和 transfer proof tests。
 - POS QR 和直播短链 pilot APIs：回到 PaymentIntent reconciliation 主线。
+- Hosted Payment Page Alpha：支持带 token 的 POS QR 和短链 checkout URL。
 - Public Merchant Sandbox：Docker Compose、`.env.example`、环境检查和 API reference 文档。
 - Bitcoin Rune Wallet/Indexer Beta adapter surface：UniSat `sendRunes`、Xverse `runes_transfer`、基于 Xverse API 的 Rune balance/UTXO/activity 校验、API-level Rune settlement recheck，以及明确标注的 PSBT request fixture 边界。
 - 商户收券地址 / vault 确认模型。
@@ -376,7 +386,7 @@ RedeemLoop 做：
 
 - 登记已有链上提货资产描述符。
 - 绑定资产、商品权益、SKU、收券地址和结算策略。
-- 生成商品页按钮、结账流程、POS QR 或短链。
+- 生成商品页按钮、结账流程、POS QR、hosted payment page 或短链。
 - 引导钱包把指定资产转入商户收券地址。
 - 通过链上事件或索引器确认收券。
 - 通知电商系统订单已付款。
@@ -401,7 +411,7 @@ packages/react     面向商户嵌入的 React provider 和 Pay Button
 packages/widget    面向非 React 店铺的 script-tag widget
 packages/contracts EVM ERC-20 提货资产示例合约
 services/api       binding、intent、proof、webhook、电商适配 API
-apps/pos-verifier  本地 Phase 0 控制台、POS QR 演示、demo store 页面、EVM live certification console 和 merchant admin console
+apps/pos-verifier  本地 Phase 0 控制台、hosted payment pages、POS QR 演示、demo store 页面、EVM live certification console 和 merchant admin console
 docs/              v0.2 协议、边界、API、集成和施工文档
 whitepaper/        v0.2 白皮书源码和渲染文件
 ```
@@ -442,6 +452,8 @@ pnpm pos:dev
 5. Confirm Receipt。
 6. 查看 dry-run mark-as-paid 适配输出。
 
+测试 hosted checkout 时，可以在 POS console 里创建 POS QR 或短链，并把 `Short Base URL` 设置成正在运行的支付页面地址，例如 `http://localhost:3000`。然后在支持钱包的浏览器打开生成的 `/pay/:intentId?token=...` 或 `/s/:slug?token=...` URL。Hosted page 使用 token-scoped public session API，用户不需要商户 API key。
+
 对于 EVM ERC-20 提货资产，`Request Transfer` 会返回钱包可直接使用的 `transfer(merchantVault, requiredAmount)` 交易请求，包括合约地址、calldata、chain ID 和 `value: 0x0`。
 `Check Balance` 会返回钱包可直接使用的 `balanceOf(payer)` call request；如果传入余额，也会判断付款地址是否持有足够提货资产。
 
@@ -462,6 +474,13 @@ POST /v1/payment-intents
 GET  /v1/payment-intents/:intentId
 POST /v1/payment-intents/:intentId/check-balance
 POST /v1/payment-intents/:intentId/transfer-requested
+POST /v1/payment-intents/:intentId/broadcasted
+GET  /v1/public/short-links/:slug?checkoutToken=...
+GET  /v1/public/payment-sessions/:intentId?checkoutToken=...
+POST /v1/public/payment-sessions/:intentId/connect-wallet
+POST /v1/public/payment-sessions/:intentId/transfer-requested
+POST /v1/public/payment-sessions/:intentId/broadcasted
+POST /v1/public/payment-sessions/:intentId/settlement/evm/recheck
 POST /v1/settlement/proofs
 POST /v1/webhook-endpoints
 POST /v1/webhook-endpoints/:id/test

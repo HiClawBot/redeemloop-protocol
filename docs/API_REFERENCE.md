@@ -1,4 +1,4 @@
-# RedeemLoop API Reference v0.8.0
+# RedeemLoop API Reference v0.9.0
 
 ## English
 
@@ -51,7 +51,15 @@ POST /v1/payment-intents/expire-stale
 POST /v1/pos/payment-intents
 POST /v1/short-links/payment-intents
 GET  /v1/short-links/:slug
+GET  /v1/public/short-links/:slug?checkoutToken=...
+GET  /v1/public/payment-sessions/:intentId?checkoutToken=...
+POST /v1/public/payment-sessions/:intentId/connect-wallet
+POST /v1/public/payment-sessions/:intentId/transfer-requested
+POST /v1/public/payment-sessions/:intentId/broadcasted
+POST /v1/public/payment-sessions/:intentId/settlement/evm/recheck
 ```
+
+POS QR and short-link creation responses include a `checkoutToken` and a hosted checkout URL. The `/v1/public/...` endpoints are scoped to that token and can be used by customer-facing hosted payment pages without exposing the merchant API key. Public session responses never return the raw token or a tokenized URL after creation.
 
 For Bitcoin Rune assets, `transfer-requested` accepts `network`, `feeRate`, `changeAddress`, `payerPublicKey`, and `runeUtxos`, then returns `transfer.bitcoin.psbtBase64`. This API response remains a PSBT fixture boundary. Real wallet flows should prefer the adapter-level UniSat `sendRunes` or Xverse `runes_transfer` path, then submit indexer-backed proof.
 
@@ -157,7 +165,15 @@ POST /v1/payment-intents/expire-stale
 POST /v1/pos/payment-intents
 POST /v1/short-links/payment-intents
 GET  /v1/short-links/:slug
+GET  /v1/public/short-links/:slug?checkoutToken=...
+GET  /v1/public/payment-sessions/:intentId?checkoutToken=...
+POST /v1/public/payment-sessions/:intentId/connect-wallet
+POST /v1/public/payment-sessions/:intentId/transfer-requested
+POST /v1/public/payment-sessions/:intentId/broadcasted
+POST /v1/public/payment-sessions/:intentId/settlement/evm/recheck
 ```
+
+POS QR 和短链创建响应会包含 `checkoutToken` 和 hosted checkout URL。`/v1/public/...` 端点只对该 token 对应的 PaymentIntent 生效，用户侧 hosted payment page 可以使用它们完成支付，而不需要暴露商户 API key。创建之后，public session 响应不会再次返回原始 token 或带 token 的 URL。
 
 对于 Bitcoin Rune 资产，`transfer-requested` 可接收 `network`、`feeRate`、`changeAddress`、`payerPublicKey` 和 `runeUtxos`，并返回 `transfer.bitcoin.psbtBase64`。该 API 响应仍是 PSBT fixture boundary。真实钱包流程应优先使用 adapter 层 UniSat `sendRunes` 或 Xverse `runes_transfer` 路径，然后提交 indexer-backed proof。
 

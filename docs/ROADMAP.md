@@ -15,7 +15,7 @@ This roadmap is the public product direction after the v0.2 Phase 0 realignment.
 - WooCommerce pilot improvements with admin diagnostics and SKU-to-binding mapping.
 - Shopify private-app mark-as-paid alpha with Admin API diagnostics and mocked GraphQL tests.
 
-Current status: v0.5.1 provides EVM pilot-certification tooling, Phase 0 hardening, a local merchant operations console, WooCommerce pilot mapping, and Shopify private-app mark-as-paid alpha support. Funded wallet runs and live commerce-store certification are still required before production-certified claims.
+Current status: v0.9.0 provides EVM pilot-certification tooling, Phase 0 hardening, a local merchant operations console, WooCommerce pilot mapping, Shopify private-app mark-as-paid alpha support, POS QR/short-link hosted payment pages, and token-scoped public checkout sessions. Funded wallet runs, managed database storage, and live commerce-store certification are still required before production-certified claims.
 
 ## Phase 1
 
@@ -44,7 +44,7 @@ Current status: v0.7.0 provides mocked alpha adapter boundaries, not live-certif
 - Mini-program SDK.
 
 Current status: v0.7.0 provides generic mocked ownership/transfer proof boundaries for inscription, ERC-721, and ERC-1155 voucher assets.
-Current status: v0.8.0 adds POS QR and livestream short-link pilot APIs backed by the same PaymentIntent reconciliation model.
+Current status: v0.9.0 adds POS QR and livestream short-link hosted payment page alpha on the same PaymentIntent reconciliation model.
 
 ## Phase 4
 
