@@ -1,4 +1,4 @@
-# RedeemLoop Integration Guide v0.4.1 / 集成指南 v0.4.1
+# RedeemLoop Integration Guide v0.4.2 / 集成指南 v0.4.2
 
 ## English
 
@@ -32,7 +32,7 @@ For real merchant Rune integration, prefer wallet-native transfer methods before
 
 - UniSat: call `createUniSatRuneWalletAdapter(window.unisat)` and use `requestRuneTransfer` with `runeId`.
 - Xverse: call `createXverseRuneWalletAdapter(request)` and use `requestRuneTransfer` with `runeName`.
-- Confirmation: call `createXverseRuneIndexerAdapter` or another `RuneIndexerAdapter` implementation, then submit the resulting proof to `POST /v1/settlement/proofs`.
+- Confirmation: after the wallet returns a txid, call `POST /v1/settlement/rune/recheck/:intentId` or `client.recheckRuneSettlement(...)`. The API uses the configured `RuneIndexerAdapter` and advances the `PaymentIntent` to `paid` when proof is confirmed.
 
 The `transfer.bitcoin.psbtBase64` API response remains available for adapter integration tests. It is not a production PSBT engine.
 
@@ -192,7 +192,7 @@ Authorization: Bearer dev-secret
 
 ### 9. WooCommerce and Shopify
 
-v0.4.1 includes the sandbox WooCommerce payment gateway plugin at:
+v0.4.2 includes the sandbox WooCommerce payment gateway plugin at:
 
 ```text
 plugins/woocommerce/redeemloop-voucher-gateway.php
@@ -286,7 +286,7 @@ Bitcoin Rune 钱包/索引器 beta 支持请见 [Bitcoin Rune Alpha](BITCOIN_RUN
 
 - UniSat：调用 `createUniSatRuneWalletAdapter(window.unisat)`，并使用带 `runeId` 的 `requestRuneTransfer`。
 - Xverse：调用 `createXverseRuneWalletAdapter(request)`，并使用带 `runeName` 的 `requestRuneTransfer`。
-- 收券确认：调用 `createXverseRuneIndexerAdapter` 或其他 `RuneIndexerAdapter` 实现，再把返回的 proof 提交到 `POST /v1/settlement/proofs`。
+- 收券确认：钱包返回 txid 后，调用 `POST /v1/settlement/rune/recheck/:intentId` 或 `client.recheckRuneSettlement(...)`。API 会使用配置好的 `RuneIndexerAdapter`，并在 proof confirmed 后把 `PaymentIntent` 推进到 `paid`。
 
 `transfer.bitcoin.psbtBase64` API 响应仍可用于 adapter integration test。它不是生产级 PSBT engine。
 
@@ -446,7 +446,7 @@ Authorization: Bearer dev-secret
 
 ### 9. WooCommerce 和 Shopify
 
-v0.4.1 已包含 WooCommerce sandbox payment gateway 插件：
+v0.4.2 已包含 WooCommerce sandbox payment gateway 插件：
 
 ```text
 plugins/woocommerce/redeemloop-voucher-gateway.php

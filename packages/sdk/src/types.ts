@@ -219,6 +219,16 @@ export interface EvmSettlementRecheckResponse extends SettlementProofResponse {
   trusted: true;
 }
 
+export interface RuneSettlementRecheckInput {
+  txid?: string;
+  from?: string;
+  confirmations?: number;
+}
+
+export interface RuneSettlementRecheckResponse extends SettlementProofResponse {
+  trusted: true;
+}
+
 export interface WebhookEndpoint {
   id: string;
   merchantId: string;

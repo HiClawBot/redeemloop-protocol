@@ -4,7 +4,7 @@
 
 This document tracks the path from v0.4.0 alpha to a realistically usable Bitcoin Rune merchant flow.
 
-### Current Status in v0.4.1
+### Current Status in v0.4.2
 
 Usable for integration development:
 
@@ -15,6 +15,8 @@ Usable for integration development:
 - Xverse API-backed balance lookup through `/v2/runes/address/{address}/balance`.
 - Xverse API-backed UTXO lookup through `/v1/runes/address/{address}/utxo`.
 - Xverse API-backed activity lookup for transfer proof matching.
+- API-level Rune settlement recheck through `POST /v1/settlement/rune/recheck/:intentId`.
+- SDK helper `client.recheckRuneSettlement(...)`.
 - Deterministic tests for wallet request payloads and indexer response mapping.
 
 Not yet certified as production-ready:
@@ -41,11 +43,11 @@ Before calling the Rune path production-ready, a pilot merchant must complete al
 
 ### Next Engineering Milestones
 
-v0.4.2 target:
+v0.4.2 shipped:
 
-- Add an API-level Rune settlement recheck endpoint using configured indexer adapters.
-- Persist Rune txid submission and proof recheck state.
-- Add environment configuration for Xverse API key and network.
+- API-level Rune settlement recheck endpoint using configured indexer adapters.
+- SDK helper for Rune settlement recheck.
+- Environment configuration for Xverse API key, network, and optional API base URL.
 
 v0.4.3 target:
 
@@ -63,7 +65,7 @@ v0.5.0 target:
 
 本文档用于跟踪 RedeemLoop 从 v0.4.0 alpha 走向真实可用 Bitcoin Rune 商户流程的路径。
 
-### v0.4.1 当前状态
+### v0.4.2 当前状态
 
 可用于集成开发：
 
@@ -74,6 +76,8 @@ v0.5.0 target:
 - 基于 Xverse API `/v2/runes/address/{address}/balance` 查询余额。
 - 基于 Xverse API `/v1/runes/address/{address}/utxo` 查询 UTXO。
 - 基于 Xverse API activity 查询匹配 transfer proof。
+- 通过 `POST /v1/settlement/rune/recheck/:intentId` 做 API-level Rune settlement recheck。
+- SDK helper：`client.recheckRuneSettlement(...)`。
 - 对钱包请求 payload 和 indexer response mapping 做了确定性测试。
 
 尚未认证为生产可用：
@@ -100,11 +104,11 @@ v0.5.0 target:
 
 ### 下一步工程里程碑
 
-v0.4.2 目标：
+v0.4.2 已发布：
 
 - 增加 API-level Rune settlement recheck endpoint，使用配置好的 indexer adapters。
-- 持久化 Rune txid submission 和 proof recheck 状态。
-- 增加 Xverse API key 与 network 的环境配置。
+- 增加 SDK Rune settlement recheck helper。
+- 增加 Xverse API key、network 和可选 API base URL 的环境配置。
 
 v0.4.3 目标：
 

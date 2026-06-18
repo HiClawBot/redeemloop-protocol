@@ -4,6 +4,33 @@
 
 No unreleased changes yet.
 
+## v0.4.2 - 2026-06-18
+
+### Added
+
+- API-level Rune settlement recheck endpoint: `POST /v1/settlement/rune/recheck/:intentId`.
+- Configurable Rune indexer wiring through injected `RuneIndexerAdapter` or Xverse API env vars.
+- Xverse API env config: `XVERSE_API_KEY`, `XVERSE_NETWORK`, and optional `XVERSE_API_BASE_URL`.
+- SDK helper `recheckRuneSettlement`.
+- API tests for successful trusted Rune recheck and missing indexer credential errors.
+- Environment validation warnings for production deployments that plan to enable Rune settlement recheck.
+
+### Changed
+
+- Rune merchant flow can now progress from wallet txid to indexer-backed proof to `paid` without manual proof construction.
+- Rune documentation now points real merchant flows to wallet-native transfer plus API-level recheck.
+
+### 中文说明
+
+- 新增 API-level Rune settlement recheck endpoint：`POST /v1/settlement/rune/recheck/:intentId`。
+- 支持通过注入的 `RuneIndexerAdapter` 或 Xverse API 环境变量配置 Rune indexer。
+- 新增 Xverse API 环境配置：`XVERSE_API_KEY`、`XVERSE_NETWORK` 和可选 `XVERSE_API_BASE_URL`。
+- SDK 新增 `recheckRuneSettlement` helper。
+- API 测试覆盖可信 Rune recheck 成功路径和缺少 indexer credentials 的错误路径。
+- 环境检查会提示生产部署在启用 Rune settlement recheck 前配置 Xverse API key。
+- Rune 商户流程现在可从钱包 txid 进入 indexer-backed proof，再推进到 `paid`，无需手动构造 proof。
+- Rune 文档现在将真实商户流程指向钱包原生转账 + API-level recheck。
+
 ## v0.4.1 - 2026-06-18
 
 ### Added

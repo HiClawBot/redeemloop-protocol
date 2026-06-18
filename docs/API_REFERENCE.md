@@ -1,4 +1,4 @@
-# RedeemLoop API Reference v0.4.1
+# RedeemLoop API Reference v0.4.2
 
 ## English
 
@@ -56,7 +56,10 @@ POST /v1/settlement/proofs
 GET  /v1/settlement/proofs/:proofId
 POST /v1/settlement/recheck/:intentId
 POST /v1/settlement/evm/recheck/:intentId
+POST /v1/settlement/rune/recheck/:intentId
 ```
+
+`POST /v1/settlement/rune/recheck/:intentId` accepts `txid`, optional `from`, and optional `confirmations`. It uses the configured `RuneIndexerAdapter`; by default the API creates an Xverse adapter from `XVERSE_API_KEY`, `XVERSE_NETWORK`, and optional `XVERSE_API_BASE_URL`.
 
 ### Webhooks
 
@@ -135,7 +138,10 @@ POST /v1/settlement/proofs
 GET  /v1/settlement/proofs/:proofId
 POST /v1/settlement/recheck/:intentId
 POST /v1/settlement/evm/recheck/:intentId
+POST /v1/settlement/rune/recheck/:intentId
 ```
+
+`POST /v1/settlement/rune/recheck/:intentId` 接收 `txid`、可选 `from` 和可选 `confirmations`。它会使用配置好的 `RuneIndexerAdapter`；默认情况下 API 会根据 `XVERSE_API_KEY`、`XVERSE_NETWORK` 和可选 `XVERSE_API_BASE_URL` 创建 Xverse adapter。
 
 ### Webhooks
 

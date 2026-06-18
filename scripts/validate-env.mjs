@@ -26,6 +26,14 @@ if (mode === "production" && process.env.RELAYER_DRY_RUN !== "false") {
   warnings.push("RELAYER_DRY_RUN should be false only after commerce and settlement credentials are ready");
 }
 
+if (process.env.XVERSE_NETWORK && !["mainnet", "signet", "testnet4"].includes(process.env.XVERSE_NETWORK)) {
+  throw new Error("XVERSE_NETWORK must be mainnet, signet, or testnet4");
+}
+
+if (mode === "production" && !process.env.XVERSE_API_KEY) {
+  warnings.push("XVERSE_API_KEY is required before enabling API-level Rune settlement recheck");
+}
+
 if (missing.length > 0) {
   console.error(`RedeemLoop env check failed for ${mode}:`);
   for (const name of missing) console.error(`- Missing ${name}`);

@@ -5,11 +5,14 @@ import {
   buildErc20BalanceCheckRequest,
   buildErc20TransferRequest,
   buildRuneTransferPsbtRequest,
+  createXverseRuneIndexerAdapter,
   verifyErc20TransferReceipt,
   type Erc20BalanceCheckRequest,
   type Erc20TransactionReceiptLike,
   type Erc20TransferRequest,
   type BitcoinNetwork,
+  type RuneIndexerAdapter,
+  type RuneIndexerNetwork,
   type RuneTransferPsbtRequest,
   type RuneUtxo,
 } from "@redeemloop/adapters";
@@ -88,6 +91,10 @@ interface ApiConfig {
     receipt: Erc20TransactionReceiptLike;
     currentBlockNumber?: bigint | number;
   }>;
+  runeIndexer?: RuneIndexerAdapter;
+  xverseApiKey?: string;
+  xverseNetwork: RuneIndexerNetwork;
+  xverseApiBaseUrl?: string;
   webhookMaxAttempts: number;
   webhookDeliverySender?: (request: WebhookDeliveryRequest) => Promise<WebhookDeliverySenderResult>;
   shopifyShopDomain?: string;
@@ -252,6 +259,10 @@ export async function createApp(config: Partial<ApiConfig> = {}): Promise<Fastif
     apiKeys: parseMerchantApiKeys(config.apiKeys ?? process.env.REDEEMLOOP_API_KEYS),
     evmMinConfirmations: normalizePositiveInteger(config.evmMinConfirmations ?? process.env.EVM_MIN_CONFIRMATIONS ?? 1, "evmMinConfirmations"),
     evmReceiptProvider: config.evmReceiptProvider,
+    runeIndexer: config.runeIndexer,
+    xverseApiKey: config.xverseApiKey ?? process.env.XVERSE_API_KEY,
+    xverseNetwork: normalizeRuneIndexerNetwork(config.xverseNetwork ?? process.env.XVERSE_NETWORK ?? "mainnet"),
+    xverseApiBaseUrl: config.xverseApiBaseUrl ?? process.env.XVERSE_API_BASE_URL,
     webhookMaxAttempts: normalizePositiveInteger(config.webhookMaxAttempts ?? process.env.WEBHOOK_MAX_ATTEMPTS ?? 5, "webhookMaxAttempts"),
     webhookDeliverySender: config.webhookDeliverySender,
     shopifyShopDomain: config.shopifyShopDomain ?? process.env.SHOPIFY_SHOP_DOMAIN,
@@ -889,6 +900,65 @@ export async function createApp(config: Partial<ApiConfig> = {}): Promise<Fastif
         amount: asset.requiredAmount,
         currentBlockNumber: receiptResult.currentBlockNumber,
         minConfirmations,
+      });
+      assertValidVoucherPaymentProof(proof, intent);
+      const idempotencyKey = proofIdempotencyKey(proof);
+      const existingProofId = proofIdempotency.get(idempotencyKey);
+      if (existingProofId) {
+        return { ...settlementProofs.get(existingProofId), duplicate: true, trusted: true };
+      }
+      settlementProofs.set(proof.proofId, proof);
+      proofIdempotency.set(idempotencyKey, proof.proofId);
+
+      const nextIntent = advanceIntentFromProof(intent, proof);
+      paymentIntents.set(nextIntent.intentId, nextIntent);
+      const commerce = proof.status === "confirmed" || proof.status === "finalized"
+        ? await markIntentCommercePaid(nextIntent, proof, bindings.get(nextIntent.bindingId), resolvedConfig, markPaidIdempotency)
+        : undefined;
+      const webhookEvent = nextIntent.status === "paid"
+        ? enqueuePaymentIntentWebhookEvent({
+            eventType: "payment_intent.paid",
+            intent: nextIntent,
+            proof,
+            webhookEndpoints,
+            webhookEvents,
+            webhookDeliveries,
+            maxAttempts: resolvedConfig.webhookMaxAttempts,
+          })
+        : undefined;
+
+      return reply.code(201).send({
+        ...proof,
+        trusted: true,
+        paymentIntent: paymentIntents.get(nextIntent.intentId),
+        commerce,
+        webhookEvent,
+      });
+    } catch (error) {
+      return reply.code(400).send(errorBody(error));
+    }
+  });
+
+  app.post("/v1/settlement/rune/recheck/:intentId", async (request, reply) => {
+    try {
+      const params = request.params as { intentId: string };
+      const body = recordOf(request.body);
+      const intent = paymentIntents.get(params.intentId);
+      if (!intent) return reply.code(404).send({ error: "PaymentIntent not found" });
+      const asset = intent.selectedAsset ?? intent.acceptedAssets[0];
+      if ((asset.chainNamespace !== "bitcoin" && asset.chainNamespace !== "fractal") || asset.assetType !== "rune") {
+        return reply.code(400).send({ error: "Rune settlement recheck currently supports Bitcoin or Fractal Rune assets" });
+      }
+      const txid = requireString(body.txid ?? intent.broadcastTxid, "txid");
+      const from = requireString(body.from ?? intent.payerAddress, "from");
+      const confirmations = body.confirmations === undefined ? undefined : normalizeNonNegativeInteger(body.confirmations, "confirmations");
+      const proof = await getRuneIndexer(resolvedConfig).getRuneTransferProof({
+        intentId: intent.intentId,
+        txid,
+        asset,
+        from,
+        to: intent.merchantVault,
+        confirmations,
       });
       assertValidVoucherPaymentProof(proof, intent);
       const idempotencyKey = proofIdempotencyKey(proof);
@@ -1795,6 +1865,11 @@ function normalizeBitcoinNetwork(value: unknown): BitcoinNetwork {
   throw new Error("network must be mainnet, testnet, signet, regtest, fractal-mainnet, or fractal-testnet");
 }
 
+function normalizeRuneIndexerNetwork(value: unknown): RuneIndexerNetwork {
+  if (value === "mainnet" || value === "signet" || value === "testnet4") return value;
+  throw new Error("XVERSE_NETWORK must be mainnet, signet, or testnet4");
+}
+
 function normalizeRuneUtxos(value: unknown): RuneUtxo[] {
   if (!Array.isArray(value) || value.length === 0) {
     throw new Error("runeUtxos must contain at least one UTXO");
@@ -1845,6 +1920,16 @@ async function fetchEvmReceipt(
     },
     currentBlockNumber,
   };
+}
+
+function getRuneIndexer(config: ApiConfig): RuneIndexerAdapter {
+  if (config.runeIndexer) return config.runeIndexer;
+  if (!config.xverseApiKey) throw new Error("XVERSE_API_KEY is required for Rune settlement recheck");
+  return createXverseRuneIndexerAdapter({
+    apiKey: config.xverseApiKey,
+    network: config.xverseNetwork,
+    baseUrl: config.xverseApiBaseUrl,
+  });
 }
 
 function movePaymentIntentForBalanceCheck(

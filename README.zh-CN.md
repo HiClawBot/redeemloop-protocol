@@ -37,7 +37,7 @@ PaymentIntent
 - WooCommerce sandbox payment gateway plugin。
 - Webhook event outbox、签名投递、重试状态、dead-letter 状态和 replay API。
 - Public Merchant Sandbox：Docker Compose、`.env.example`、环境检查和 API reference 文档。
-- Bitcoin Rune Wallet/Indexer Beta adapter surface：UniSat `sendRunes`、Xverse `runes_transfer`、基于 Xverse API 的 Rune balance/UTXO/activity 校验，以及明确标注的 PSBT request fixture 边界。
+- Bitcoin Rune Wallet/Indexer Beta adapter surface：UniSat `sendRunes`、Xverse `runes_transfer`、基于 Xverse API 的 Rune balance/UTXO/activity 校验、API-level Rune settlement recheck，以及明确标注的 PSBT request fixture 边界。
 - 商户收券地址 / vault 确认模型。
 - Settlement proof 提交与幂等。
 - WooCommerce、Shopify、自定义 mark-as-paid 适配表面。

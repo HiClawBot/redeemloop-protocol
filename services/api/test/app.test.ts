@@ -986,6 +986,88 @@ describe("RedeemLoop API relayer prototype", () => {
     await app.close();
   });
 
+  it("trusted-rechecks a Bitcoin Rune txid through the configured Rune indexer", async () => {
+    const indexerInputs: unknown[] = [];
+    const app = await createApp({
+      chainId: 31337,
+      dryRun: true,
+      runeIndexer: {
+        async getRuneBalance(address, runeId) {
+          return { address, runeId, amount: "10" };
+        },
+        async listRuneUtxos() {
+          return [];
+        },
+        async getRuneTransferProof(input) {
+          indexerInputs.push(input);
+          return {
+            proofId: `proof_${input.txid}`,
+            intentId: input.intentId,
+            chainNamespace: input.asset.chainNamespace,
+            chainId: input.asset.chainId,
+            txid: input.txid,
+            confirmations: input.confirmations ?? 1,
+            from: input.from,
+            to: input.to,
+            assetType: "rune",
+            assetId: input.asset.assetId,
+            amount: input.asset.requiredAmount,
+            status: "confirmed",
+            rawProof: { indexer: "test" },
+          };
+        },
+      },
+    });
+    const intentId = await createRunePaymentIntent(app, "recheck");
+
+    const recheckResponse = await app.inject({
+      method: "POST",
+      url: `/v1/settlement/rune/recheck/${intentId}`,
+      payload: { txid: "btc_txid", confirmations: 2 },
+    });
+    expect(recheckResponse.statusCode).toBe(201);
+    expect(recheckResponse.json()).toMatchObject({
+      trusted: true,
+      txid: "btc_txid",
+      confirmations: 2,
+      status: "confirmed",
+      assetType: "rune",
+      paymentIntent: {
+        status: "paid",
+      },
+      commerce: {
+        provider: "custom",
+        dryRun: true,
+      },
+    });
+    expect(indexerInputs[0]).toMatchObject({
+      txid: "btc_txid",
+      from: "bc1payer",
+      to: "bc1merchant",
+      confirmations: 2,
+    });
+
+    await app.close();
+  });
+
+  it("returns a clear error when Rune settlement recheck has no configured indexer credentials", async () => {
+    const app = await createApp({ chainId: 31337, dryRun: true });
+    const intentId = await createRunePaymentIntent(app, "missing_config");
+
+    const response = await app.inject({
+      method: "POST",
+      url: `/v1/settlement/rune/recheck/${intentId}`,
+      payload: {
+        txid: "btc_txid",
+        from: "bc1payer",
+      },
+    });
+    expect(response.statusCode).toBe(400);
+    expect(response.json().error).toContain("XVERSE_API_KEY");
+
+    await app.close();
+  });
+
   it("creates an intent, verifies the EIP-712 signature, and dry-runs submission", async () => {
     const app = await createApp({ chainId: 31337, dryRun: true });
 
@@ -1317,6 +1399,76 @@ async function createIntent(app: Awaited<ReturnType<typeof createApp>>) {
   });
   expect(intentResponse.statusCode).toBe(201);
   return intentResponse.json() as { authorization: RedeemAuthorizationJson };
+}
+
+async function createRunePaymentIntent(app: Awaited<ReturnType<typeof createApp>>, suffix: string): Promise<string> {
+  const merchantId = `merchant_rune_${suffix}`;
+  const entitlementId = `ent_rune_${suffix}`;
+  const bindingId = `bind_rune_${suffix}`;
+  await app.inject({
+    method: "POST",
+    url: "/v1/merchants",
+    payload: {
+      merchantId,
+      name: "Rune Merchant",
+    },
+  });
+  await app.inject({
+    method: "POST",
+    url: "/v1/entitlements",
+    payload: {
+      entitlementId,
+      merchantId,
+      name: "Rune pickup",
+      quantity: 1,
+      termsHash: "rune-terms",
+    },
+  });
+  await app.inject({
+    method: "POST",
+    url: "/v1/bindings",
+    payload: {
+      bindingId,
+      merchantId,
+      entitlementId,
+      acceptedAssets: [
+        {
+          chainNamespace: "bitcoin",
+          assetType: "rune",
+          assetId: "bitcoin/rune:840000:3",
+          runeId: "840000:3",
+          runeName: "UNCOMMON•GOODS",
+          requiredAmount: "10",
+          termsHash: "rune-terms",
+        },
+      ],
+      merchantVaults: {
+        bitcoin: "bc1merchant",
+      },
+      settlementPolicy: "collect",
+      commerceTargets: [
+        {
+          platform: "custom",
+          storeId: `rune-store-${suffix}`,
+          sku: "rune-cup",
+        },
+      ],
+      status: "active",
+      termsHash: "rune-terms",
+    },
+  });
+  const intentResponse = await app.inject({
+    method: "POST",
+    url: "/v1/payment-intents",
+    payload: {
+      bindingId,
+      orderId: `rune-${suffix}`,
+      channel: "checkout",
+      payerAddress: "bc1payer",
+    },
+  });
+  expect(intentResponse.statusCode).toBe(201);
+  return intentResponse.json().intentId as string;
 }
 
 function commercePayload(overrides: Record<string, unknown> = {}) {

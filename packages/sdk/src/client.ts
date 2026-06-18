@@ -21,6 +21,8 @@ import type {
   ReceivingAddressRecord,
   RedeemLoopMerchant,
   ReplayWebhookDeliveryInput,
+  RuneSettlementRecheckInput,
+  RuneSettlementRecheckResponse,
   SelectAssetInput,
   SetReceivingAddressInput,
   SettlementProofResponse,
@@ -191,6 +193,13 @@ export class RedeemLoopClient {
 
   async recheckEvmSettlement(intentId: string, input: EvmSettlementRecheckInput = {}): Promise<EvmSettlementRecheckResponse> {
     return this.request(`/v1/settlement/evm/recheck/${encodeURIComponent(intentId)}`, {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+  }
+
+  async recheckRuneSettlement(intentId: string, input: RuneSettlementRecheckInput = {}): Promise<RuneSettlementRecheckResponse> {
+    return this.request(`/v1/settlement/rune/recheck/${encodeURIComponent(intentId)}`, {
       method: "POST",
       body: JSON.stringify(input),
     });
