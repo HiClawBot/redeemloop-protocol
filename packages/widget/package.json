@@ -1,7 +1,7 @@
 {
   "name": "@redeemloop/widget",
   "private": true,
-  "version": "0.9.1",
+  "version": "0.9.2",
   "type": "module",
   "license": "MIT",
   "main": "./dist/index.js",
@@ -13,7 +13,7 @@
     }
   },
   "scripts": {
-    "pretest": "pnpm --filter @redeemloop/adapters build",
+    "pretest": "pnpm --filter @redeemloop/core build && pnpm --filter @redeemloop/adapters build && pnpm --filter @redeemloop/sdk build",
     "build": "tsc -p tsconfig.json",
     "test": "vitest run",
     "lint": "tsc --noEmit -p tsconfig.test.json"

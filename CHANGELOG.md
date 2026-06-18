@@ -4,6 +4,18 @@
 
 No unreleased changes yet.
 
+## v0.9.2 - 2026-06-18
+
+### Fixed
+
+- GitHub Pages workflow now requests Pages enablement through `actions/configure-pages`.
+- React and widget package tests now prebuild `@redeemloop/core`, `@redeemloop/adapters`, and `@redeemloop/sdk`, so clean CI environments can resolve workspace package entry points.
+
+### 中文说明
+
+- GitHub Pages workflow 现在会通过 `actions/configure-pages` 请求启用 Pages。
+- React 和 widget 包测试前会预构建 `@redeemloop/core`、`@redeemloop/adapters` 和 `@redeemloop/sdk`，避免干净 CI 环境找不到 workspace package 入口。
+
 ## v0.9.1 - 2026-06-18
 
 ### Added
