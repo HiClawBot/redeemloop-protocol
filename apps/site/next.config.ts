@@ -9,6 +9,9 @@ const nextConfig: NextConfig = {
   trailingSlash: true,
   basePath: basePath || undefined,
   assetPrefix: basePath || undefined,
+  env: {
+    NEXT_PUBLIC_REDEEMLOOP_SITE_BASE_PATH: basePath,
+  },
   experimental: {
     optimizePackageImports: ["@phosphor-icons/react"],
   },

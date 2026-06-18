@@ -4,7 +4,7 @@
 
 :root {
   color-scheme: light;
-  background: #f4f2eb;
+  background: #f3f6f9;
 }
 
 * {
@@ -19,12 +19,10 @@ html {
 body {
   margin: 0;
   background:
-    linear-gradient(90deg, rgba(23, 26, 31, 0.05) 1px, transparent 1px),
-    linear-gradient(rgba(23, 26, 31, 0.04) 1px, transparent 1px),
-    #f4f2eb;
-  background-size: 42px 42px;
-  color: #171a1f;
-  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+    radial-gradient(circle at 72% 8%, rgba(223, 243, 239, 0.88), transparent 34rem),
+    linear-gradient(180deg, #ffffff 0%, #f3f6f9 46%, #ffffff 100%);
+  color: #0d1b2a;
+  font-family: var(--font-inter), Inter, ui-sans-serif, system-ui, sans-serif;
   letter-spacing: 0;
 }
 
@@ -44,43 +42,43 @@ a {
 }
 
 ::selection {
-  background: rgba(23, 107, 88, 0.22);
+  background: rgba(10, 123, 110, 0.2);
 }
 
 @layer components {
   .btn-primary {
-    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-ink px-4 text-sm font-bold text-chalk transition hover:bg-pine active:translate-y-px;
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-pine px-5 text-sm font-semibold text-white shadow-[0_12px_24px_-18px_rgba(10,123,110,0.85)] transition hover:bg-[#086e63] active:translate-y-px;
   }
 
   .btn-secondary {
-    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-line bg-chalk px-4 text-sm font-bold text-ink transition hover:border-pine hover:text-pine active:translate-y-px;
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-pine bg-white px-5 text-sm font-semibold text-ink transition hover:bg-field hover:text-pine active:translate-y-px;
   }
 
   .section-kicker {
-    @apply text-xs font-black uppercase tracking-[0.18em] text-rust;
+    @apply text-xs font-semibold uppercase tracking-[0.18em] text-pine;
   }
 
   .section-title {
-    @apply mt-3 max-w-4xl text-3xl font-black leading-tight tracking-normal text-ink sm:text-4xl;
+    @apply mt-3 max-w-4xl text-3xl font-bold leading-tight tracking-normal text-ink sm:text-4xl;
   }
 
   .tab-button {
-    @apply grid h-11 min-w-0 place-items-center rounded-md border border-line bg-paper text-muted transition hover:border-pine hover:text-pine;
+    @apply grid h-11 min-w-0 place-items-center rounded-md border border-line bg-white text-muted transition hover:border-pine hover:bg-field hover:text-pine;
   }
 
   .tab-button-active {
-    @apply border-ink bg-ink text-chalk hover:border-ink hover:text-chalk;
+    @apply border-pine bg-pine text-white hover:border-pine hover:text-white;
   }
 
   .scenario-tile {
-    @apply min-h-[230px] rounded-lg border border-line bg-paper p-5 text-left transition hover:-translate-y-0.5 hover:border-pine hover:bg-chalk;
+    @apply min-h-[230px] rounded-2xl border border-line bg-white p-5 text-left shadow-[0_16px_36px_-30px_rgba(13,27,42,0.35)] transition hover:-translate-y-0.5 hover:border-pine hover:bg-white;
   }
 
   .scenario-tile-active {
-    @apply border-ink bg-chalk shadow-panel;
+    @apply border-pine bg-white shadow-panel;
   }
 
   .footer-link {
-    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-white/15 px-3 text-sm font-bold text-chalk/85 transition hover:border-brass hover:text-brass;
+    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-white/20 px-3 text-sm font-semibold text-white/85 transition hover:border-field hover:text-field;
   }
 }

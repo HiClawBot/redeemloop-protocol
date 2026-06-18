@@ -4,6 +4,26 @@
 
 No unreleased changes yet.
 
+## v0.9.3 - 2026-06-18
+
+### Changed
+
+- Applied the supplied RedeemLoop VI assets to the official website without redrawing or recoloring the brand elements.
+- Added original VI image assets and extracted transparent SVG logo mark/wordmark assets under `apps/site/public/vi`.
+- Split the website into pure-language pages: `/` for Chinese and `/en` for English.
+- Kept the English website free of Chinese visible text and Chinese-bearing VI board imagery.
+- Updated the website palette to the VI colors: `#0D1B2A`, `#0A7B6E`, `#DFF3EF`, and `#F3F6F9`.
+- Updated the website typography, navigation, hero, scenario panels, and visual gallery to match the supplied VI direction without remote font fetch dependency.
+
+### 中文说明
+
+- 按提供的 RedeemLoop VI 素材装修官网，不重绘、不改色品牌元素。
+- 在 `apps/site/public/vi` 新增原始 VI 图片素材，并提取透明底 SVG logo mark / wordmark 资产。
+- 官网拆成纯语种页面：`/` 中文版，`/en` 英文版。
+- 英文官网不显示中文文字，也不展示带中文内容的 VI 版式图。
+- 官网色板更新为 VI 色：`#0D1B2A`、`#0A7B6E`、`#DFF3EF`、`#F3F6F9`。
+- 官网字体、导航、首屏、场景面板和视觉图库更新为提供的 VI 方向，并移除远程字体下载构建依赖。
+
 ## v0.9.2 - 2026-06-18
 
 ### Fixed

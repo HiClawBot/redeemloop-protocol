@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import { quickStartCommands, readinessRows, scenarios, siteCopy } from "../src/content";
 
+const containsHan = (value: unknown): boolean => /[\p{Script=Han}]/u.test(JSON.stringify(value));
+
 describe("site content", () => {
   it("keeps scenario model bilingual and actionable", () => {
     expect(scenarios).toHaveLength(4);
@@ -28,5 +30,28 @@ describe("site content", () => {
     expect(quickStartCommands).toContain("pnpm site:dev");
     expect(siteCopy.en.footer.domain).toContain("redeemloop.aifund.com");
     expect(siteCopy.zh.footer.domain).toContain("redeemloop.aifund.com");
+  });
+
+  it("keeps English website copy free of Chinese characters", () => {
+    const englishScenarioCopy = scenarios.map((scenario) => ({
+      status: scenario.status.en,
+      title: scenario.title.en,
+      summary: scenario.summary.en,
+      merchant: scenario.merchant.en,
+      customer: scenario.customer.en,
+      result: scenario.result.en,
+      steps: scenario.steps.en,
+      metrics: scenario.metrics.map((metric) => metric.label.en),
+    }));
+    const englishReadinessCopy = readinessRows.map((row) => ({
+      rail: row.rail,
+      status: row.status.en,
+      scope: row.scope.en,
+      next: row.next.en,
+    }));
+
+    expect(containsHan(siteCopy.en)).toBe(false);
+    expect(containsHan(englishScenarioCopy)).toBe(false);
+    expect(containsHan(englishReadinessCopy)).toBe(false);
   });
 });

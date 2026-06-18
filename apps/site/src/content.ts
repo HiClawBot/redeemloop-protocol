@@ -20,20 +20,22 @@ export type Scenario = {
 export const siteCopy = {
   en: {
     nav: {
-      scenarios: "Scenarios",
-      status: "Status",
-      docs: "Docs",
-      releases: "Releases",
+      home: "Home",
+      scenarios: "Product",
+      status: "Solutions",
+      docs: "Developers",
+      releases: "About",
       github: "GitHub",
-      language: "中文",
+      language: "ZH",
+      languageAria: "Open Chinese version",
     },
     hero: {
-      eyebrow: "Open-source voucher payment protocol",
-      title: "RedeemLoop Protocol",
+      eyebrow: "Open, trusted, sustainable voucher payment protocol",
+      title: "Make every voucher more valuable",
       body:
-        "A non-issuing gateway for merchants that already have FT, NFT, Rune, or Inscription voucher assets. RedeemLoop binds the asset, verifies receipt, and lets commerce mark the order as paid.",
-      primary: "Inspect scenarios",
-      secondary: "Read integration guide",
+        "RedeemLoop keeps the VI promise narrow: existing voucher assets, transparent circulation, receipt confirmation, and commerce mark-as-paid.",
+      primary: "Explore product",
+      secondary: "Understand protocol",
       alpha:
         "Current release is alpha/pilot infrastructure. EVM checkout is implemented at integration level; Rune, Fractal, and inscription flows still require live certification.",
     },
@@ -56,6 +58,18 @@ export const siteCopy = {
       title: "Readiness status",
       body:
         "Public wording separates implemented integration support from live certification evidence.",
+      columns: {
+        rail: "Rail",
+        status: "Status",
+        scope: "Scope",
+        next: "Next proof",
+      },
+    },
+    visual: {
+      title: "Brand system",
+      body:
+        "The public site uses the original transparent RedeemLoop mark, the exact VI palette, and clean commerce scenes without mixing languages.",
+      cards: ["Transparent SVG mark", "Voucher checkout", "POS QR", "Merchant operations"],
     },
     developer: {
       title: "Developer entry",
@@ -88,20 +102,22 @@ export const siteCopy = {
   },
   zh: {
     nav: {
-      scenarios: "场景",
-      status: "状态",
-      docs: "文档",
-      releases: "版本",
+      home: "首页",
+      scenarios: "商品",
+      status: "解决方案",
+      docs: "开发者",
+      releases: "关于我们",
       github: "GitHub",
       language: "EN",
+      languageAria: "打开英文版本",
     },
     hero: {
-      eyebrow: "开源提货券支付协议",
-      title: "RedeemLoop Protocol / 兑环协议",
+      eyebrow: "开放、可信、可持续的提货券协议",
+      title: "让每一张提货券 更有价值",
       body:
-        "面向已经拥有 FT、NFT、Rune 或 Inscription 提货资产的商户。RedeemLoop 只做资产绑定、收券确认和电商订单 mark-as-paid。",
-      primary: "查看场景模型",
-      secondary: "阅读集成指南",
+        "RedeemLoop 保持 VI 里的克制承诺：已有提货资产、透明流通、收券确认和电商订单 mark-as-paid。",
+      primary: "探索商品",
+      secondary: "了解协议",
       alpha:
         "当前版本仍是 alpha/pilot 基础设施。EVM checkout 已具备集成层支持；Rune、Fractal、Inscription 仍需要真实钱包和索引器认证。",
     },
@@ -124,6 +140,18 @@ export const siteCopy = {
       title: "可用度状态",
       body:
         "公开表述会区分已经实现的集成能力和仍需真实认证的生产证据。",
+      columns: {
+        rail: "路径",
+        status: "状态",
+        scope: "范围",
+        next: "下一步证明",
+      },
+    },
+    visual: {
+      title: "视觉识别应用",
+      body:
+        "官网沿用你提供的 RedeemLoop VI 原图、透明 SVG 标识和原始色板，不重绘、不改色。",
+      cards: ["透明 SVG 标识", "提货券支付", "POS 二维码", "商户运营"],
     },
     developer: {
       title: "开发者入口",

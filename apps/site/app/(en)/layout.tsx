@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 
-import "./globals.css";
+import "../globals.css";
 
 export const metadata: Metadata = {
   title: "RedeemLoop Protocol",
@@ -18,10 +18,10 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   colorScheme: "light",
-  themeColor: "#f4f2eb",
+  themeColor: "#f3f6f9",
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default function EnglishRootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
       <body>{children}</body>
