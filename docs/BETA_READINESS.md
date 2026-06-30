@@ -58,6 +58,22 @@ The workflow starts the Docker Compose stack with Postgres, API, worker, and con
 
 Download `beta-readiness-production.json` into `evidence/beta-readiness-production.json` before running the beta evidence manifest validator. This workflow proves production-readiness signals for the configured runner environment; it is not a substitute for funded wallet or live store certification.
 
+### Secret Readiness
+
+Before running certification workflows, verify the required beta repository secret names without printing secret values:
+
+```bash
+pnpm beta:secrets:check -- --repo RedeemLoopProtocol/redeemloop-protocol
+```
+
+Add `--env` only when you also want to check the current shell for local certification runs:
+
+```bash
+pnpm beta:secrets:check -- --repo RedeemLoopProtocol/redeemloop-protocol --env
+```
+
+The command is read-only. It checks that `REDEEMLOOP_EVM_RPC_URLS` and `REDEEMLOOP_COMMERCE_CERTIFICATION_API_KEY` exist as GitHub Actions repository secrets and reports the exact `gh secret set` command to use when one is missing. It never reads or prints secret values.
+
 ### Checks
 
 - `GET /health`
@@ -265,6 +281,22 @@ pnpm beta:smoke:compose
 该 workflow 会启动包含 Postgres、API、worker 和 console 的 Docker Compose stack，把 `EVM_RPC_URLS` 注入 API service，运行 `pnpm --silent beta:smoke:compose -- --keep-up --json`，再运行 `pnpm --silent beta:check:production -- --json`，校验两个 JSON report，停止 Docker Compose，并把 `beta-readiness-production.json` 和新的 `compose-smoke.json` 上传为 `redeemloop-production-readiness-evidence`。
 
 运行 beta evidence manifest validator 前，把 `beta-readiness-production.json` 下载到 `evidence/beta-readiness-production.json`。该 workflow 证明的是当前 runner 环境的 production-readiness signals；它不能替代 funded wallet 或 live store certification。
+
+### Secret Readiness
+
+运行 certification workflows 前，先检查必需 beta repository secret 名称是否存在；该检查不会打印 secret 值：
+
+```bash
+pnpm beta:secrets:check -- --repo RedeemLoopProtocol/redeemloop-protocol
+```
+
+只有在需要同时检查当前 shell 是否具备本地认证运行所需环境变量时，才加 `--env`：
+
+```bash
+pnpm beta:secrets:check -- --repo RedeemLoopProtocol/redeemloop-protocol --env
+```
+
+该命令是只读的。它会检查 GitHub Actions repository secrets 中是否存在 `REDEEMLOOP_EVM_RPC_URLS` 和 `REDEEMLOOP_COMMERCE_CERTIFICATION_API_KEY`，并在缺失时给出可执行的 `gh secret set` 命令；它不会读取或打印 secret 值。
 
 ### 检查项
 
