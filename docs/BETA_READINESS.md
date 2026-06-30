@@ -94,6 +94,17 @@ Required evidence for a production-certified beta claim:
 
 Shopify certification is optional unless the beta release claims Shopify live support.
 
+### Release Preflight
+
+Use the release preflight while replacing evidence placeholders. It summarizes which artifacts are ready, which required artifacts still block publication, and the next operator actions:
+
+```bash
+pnpm beta:release:preflight -- \
+  --manifest evidence/beta-evidence.manifest.json
+```
+
+Add `--github --repo RedeemLoopProtocol/redeemloop-protocol` to verify that the required GitHub repository secret names exist. The preflight is read-only: it does not send wallet transactions, call commerce adapters, or read secret values. It is an operator checklist, not a substitute for the final release gate.
+
 ### Funded EVM Evidence
 
 After a real wallet broadcasts an ERC-20 voucher transfer, generate the EVM certification artifact from a read-only RPC receipt check:
@@ -264,6 +275,17 @@ Production-certified beta 声明所需证据：
 - Beta release notes。
 
 除非 beta release 声明 Shopify live support，否则 Shopify certification 是可选项。
+
+### Release Preflight
+
+替换 evidence placeholder 的过程中，可以用 release preflight 汇总哪些 artifact 已经就绪、哪些必需 artifact 仍阻断发布，以及下一步操作：
+
+```bash
+pnpm beta:release:preflight -- \
+  --manifest evidence/beta-evidence.manifest.json
+```
+
+加入 `--github --repo RedeemLoopProtocol/redeemloop-protocol` 后，可以检查必需的 GitHub repository secret 名称是否存在。Preflight 是只读检查：不发送钱包交易，不调用 commerce adapter，也不读取 secret 值。它是操作员 checklist，不能替代最终 release gate。
 
 ### Funded EVM Evidence
 
