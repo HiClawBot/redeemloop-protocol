@@ -26,6 +26,7 @@
     "beta:evidence:check": "node scripts/check-beta-evidence.mjs",
     "beta:evidence:summary": "node scripts/create-beta-release-summary.mjs",
     "beta:secrets:check": "node scripts/check-beta-secrets.mjs",
+    "beta:certification:plan": "node scripts/plan-beta-certification-runs.mjs",
     "beta:release:preflight": "node scripts/beta-release-preflight.mjs",
     "beta:release:gate": "node scripts/beta-release-gate.mjs",
     "beta:version:prepare": "node scripts/prepare-beta-version.mjs",

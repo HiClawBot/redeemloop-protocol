@@ -72,6 +72,7 @@ Shopify live support is optional for the first beta. Bitcoin Rune, Fractal, insc
    - Use the hosted payment page, React pay button, widget, or local certification console.
    - Broadcast one real ERC-20 voucher transfer into the merchant vault.
    - Record chain ID, wallet name/version, PaymentIntent ID, transaction hash, payer, receiver, token contract, and amount.
+   - Copy `docs/examples/beta-certification-inputs.example.json` to `evidence/private-certification-inputs.json`, replace placeholders with real values, and run `pnpm beta:certification:plan -- --input evidence/private-certification-inputs.json`.
 
 3. Generate funded EVM evidence.
    - Run the **Beta EVM Wallet Certification Evidence** workflow.
@@ -115,8 +116,8 @@ Shopify live support is optional for the first beta. Bitcoin Rune, Fractal, insc
 |-------|-----|-------------------|-----------|
 | 0 | Release claim discipline | Lock the first beta scope to EVM + WooCommerce only | Public docs avoid uncertified Shopify/Rune/Fractal/NFT production claims |
 | 1 | Missing commerce secret | Add `REDEEMLOOP_COMMERCE_CERTIFICATION_API_KEY` in GitHub Actions secrets | `pnpm beta:secrets:check` passes |
-| 2 | Missing funded EVM evidence | Execute one real ERC-20 voucher transfer and run the EVM certification workflow | `evidence/evm-wallet-certification.json` passes validation |
-| 3 | Missing WooCommerce evidence | Mark one safe WooCommerce test order paid through RedeemLoop and run the commerce workflow | `evidence/woocommerce-certification.json` passes validation and is not dry-run |
+| 2 | Missing funded EVM evidence | Execute one real ERC-20 voucher transfer, validate certification inputs with `pnpm beta:certification:plan`, and run the EVM certification workflow | `evidence/evm-wallet-certification.json` passes validation |
+| 3 | Missing WooCommerce evidence | Mark one safe WooCommerce test order paid through RedeemLoop using the same planned settlement identity and run the commerce workflow | `evidence/woocommerce-certification.json` passes validation and is not dry-run |
 | 4 | Missing public release notes | Generate the public-safe bilingual summary from validated private evidence | `evidence/RELEASE_BETA.md` exists, is bilingual, and is redacted |
 | 5 | Final release gate | Prepare beta version, run strict gate, push tag, publish GitHub Release | `beta:release:gate --require-version-match` and main CI pass |
 
@@ -217,6 +218,7 @@ Release gate 现在仍然失败，这是有意设计；只有真实 artifact 就
    - 使用 hosted payment page、React pay button、widget，或本地 certification console。
    - 广播一笔真实 ERC-20 提货券转账到商户 vault。
    - 记录 chain ID、wallet name/version、PaymentIntent ID、transaction hash、payer、receiver、token contract 和 amount。
+   - 把 `docs/examples/beta-certification-inputs.example.json` 复制到 `evidence/private-certification-inputs.json`，用真实值替换占位内容，并运行 `pnpm beta:certification:plan -- --input evidence/private-certification-inputs.json`。
 
 3. 生成 funded EVM evidence。
    - 运行 **Beta EVM Wallet Certification Evidence** workflow。
@@ -260,8 +262,8 @@ Release gate 现在仍然失败，这是有意设计；只有真实 artifact 就
 |------|------|----------|----------|
 | 0 | 发布声明口径 | 首个 beta 范围锁定为 EVM + WooCommerce | 公开文档不声明未认证的 Shopify/Rune/Fractal/NFT production support |
 | 1 | 缺 commerce secret | 在 GitHub Actions secrets 中添加 `REDEEMLOOP_COMMERCE_CERTIFICATION_API_KEY` | `pnpm beta:secrets:check` 通过 |
-| 2 | 缺 funded EVM evidence | 执行一笔真实 ERC-20 提货券转账，并运行 EVM certification workflow | `evidence/evm-wallet-certification.json` 通过校验 |
-| 3 | 缺 WooCommerce evidence | 通过 RedeemLoop 把一个安全 WooCommerce 测试订单标记为 paid，并运行 commerce workflow | `evidence/woocommerce-certification.json` 通过校验，且不是 dry-run |
+| 2 | 缺 funded EVM evidence | 执行一笔真实 ERC-20 提货券转账，用 `pnpm beta:certification:plan` 校验认证输入，并运行 EVM certification workflow | `evidence/evm-wallet-certification.json` 通过校验 |
+| 3 | 缺 WooCommerce evidence | 使用同一组 planned settlement identity，通过 RedeemLoop 把一个安全 WooCommerce 测试订单标记为 paid，并运行 commerce workflow | `evidence/woocommerce-certification.json` 通过校验，且不是 dry-run |
 | 4 | 缺公开 release notes | 用已校验私有 evidence 生成公开安全的双语 summary | `evidence/RELEASE_BETA.md` 存在、双语、且已脱敏 |
 | 5 | 最终发布 gate | 准备 beta version，运行 strict gate，推送 tag，发布 GitHub Release | `beta:release:gate --require-version-match` 和 main CI 通过 |
 
