@@ -4,6 +4,8 @@
 
 This document tracks the remaining distance from the current alpha/pilot implementation to the first public beta release.
 
+For the step-by-step GitHub UI and command sequence, use [Beta Operator Runbook](BETA_OPERATOR_RUNBOOK.md).
+
 ### Current Distance
 
 As of v0.10.25, the codebase has the release tooling needed for a public beta, but the beta cannot be claimed as production-certified yet.
@@ -144,6 +146,8 @@ The first beta must not claim:
 ## 中文
 
 本文档记录当前 alpha/pilot 实现距离首个公开 beta 发布还差什么。
+
+如需按照 GitHub UI 和命令行逐步执行，请使用 [Beta Operator Runbook](BETA_OPERATOR_RUNBOOK.md)。
 
 ### 当前距离
 
