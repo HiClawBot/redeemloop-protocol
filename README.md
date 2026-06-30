@@ -153,7 +153,7 @@ REDEEMLOOP_API_KEY=dev-secret \
 pnpm beta:check
 ```
 
-For production-style gates, use `pnpm beta:check:production`. See [Beta Readiness Checks](docs/BETA_READINESS.md).
+For production-style gates, use `pnpm beta:check:production`. See [Beta Readiness Checks](docs/BETA_READINESS.md) and the [Beta Operator Runbook](docs/BETA_OPERATOR_RUNBOOK.md).
 
 Trusted EVM settlement recheck can be enabled with:
 
@@ -346,6 +346,7 @@ manual_review
 - [Integration Guide](docs/INTEGRATION_GUIDE.md)
 - [Public Merchant Sandbox](docs/PUBLIC_SANDBOX.md)
 - [Beta Release Execution Plan](docs/BETA_RELEASE_EXECUTION_PLAN.md)
+- [Beta Operator Runbook](docs/BETA_OPERATOR_RUNBOOK.md)
 - [EVM Multi-Chain Wallet Beta](docs/EVM_MULTI_CHAIN_WALLET.md)
 - [EVM Live Certification Runbook](docs/EVM_LIVE_CERTIFICATION.md)
 - [Merchant Admin and WooCommerce Pilot](docs/MERCHANT_ADMIN_WOOCOMMERCE_PILOT.md)

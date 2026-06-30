@@ -4,6 +4,8 @@
 
 `pnpm beta:check` collects deployment evidence before a beta release or pilot run. It does not certify a real wallet, a real store, or a live commerce flow by itself; it verifies that the deployed API exposes the minimum operational signals needed before those certification runs.
 
+For the end-to-end GitHub UI sequence after these checks are understood, use the [Beta Operator Runbook](BETA_OPERATOR_RUNBOOK.md).
+
 ### Local Sandbox
 
 Start the API, then run a one-shot worker drain so the webhook heartbeat exists:
@@ -197,6 +199,8 @@ pnpm beta:release:gate -- \
 ## 中文
 
 `pnpm beta:check` 用于在 beta release 或 pilot run 前采集部署证据。它本身不等于真实钱包、真实店铺或 live commerce flow 已认证；它只验证部署中的 API 是否已经暴露真实认证前所需的最低运维信号。
+
+理解这些检查后，如需按 GitHub UI 完成完整发布操作，请使用 [Beta Operator Runbook](BETA_OPERATOR_RUNBOOK.md)。
 
 ### 本地 Sandbox
 

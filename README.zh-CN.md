@@ -153,7 +153,7 @@ REDEEMLOOP_API_KEY=dev-secret \
 pnpm beta:check
 ```
 
-生产式 gate 使用 `pnpm beta:check:production`。详见 [Beta Readiness Checks](docs/BETA_READINESS.md)。
+生产式 gate 使用 `pnpm beta:check:production`。详见 [Beta Readiness Checks](docs/BETA_READINESS.md) 和 [Beta Operator Runbook](docs/BETA_OPERATOR_RUNBOOK.md)。
 
 可信 EVM settlement recheck 可以这样启用：
 
@@ -346,6 +346,7 @@ manual_review
 - [集成指南](docs/INTEGRATION_GUIDE.md)
 - [Public Merchant Sandbox](docs/PUBLIC_SANDBOX.md)
 - [Beta 发布施工计划](docs/BETA_RELEASE_EXECUTION_PLAN.md)
+- [Beta 发布操作手册](docs/BETA_OPERATOR_RUNBOOK.md)
 - [EVM Multi-Chain Wallet Beta](docs/EVM_MULTI_CHAIN_WALLET.md)
 - [EVM Live Certification Runbook](docs/EVM_LIVE_CERTIFICATION.md)
 - [Merchant Admin and WooCommerce Pilot](docs/MERCHANT_ADMIN_WOOCOMMERCE_PILOT.md)
