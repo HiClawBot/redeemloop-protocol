@@ -49,7 +49,9 @@ jobs:
 
       - name: Beta release tooling smoke
         run: |
+          node --check scripts/beta-release-preflight.mjs
           node --check scripts/beta-release-gate.mjs
+          pnpm --silent beta:release:preflight -- --help
           pnpm --silent beta:release:gate -- --help
 
       - name: Audit
