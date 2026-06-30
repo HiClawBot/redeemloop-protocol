@@ -49,6 +49,7 @@
 - Added `pnpm beta:evidence:download` to safely download selected GitHub Actions evidence artifacts into the local ignored evidence folder by workflow run ID.
 - Updated the beta release preflight GitHub Actions workflow to reuse `pnpm beta:evidence:download` instead of duplicating artifact download shell logic.
 - Added a manual Beta Release Gate Evidence workflow that downloads required evidence artifacts, generates public release notes, runs the strict beta release gate, and uploads `beta-release-gate.json`.
+- Added `pnpm beta:secrets:check` to verify required beta GitHub secret names and optional local secret env presence without printing secret values.
 - Added `pnpm beta:version:prepare` to dry-run or apply a consistent workspace package version before the strict beta release gate.
 - Added bilingual beta readiness guide at `docs/BETA_READINESS.md`.
 - Reworked the official website from a construction/status page into a merchant-facing product homepage.
@@ -103,6 +104,7 @@
 - 新增 `pnpm beta:evidence:download`，可按 workflow run ID 把指定 GitHub Actions evidence artifacts 安全下载到本地被 Git 忽略的 evidence 目录。
 - 更新 beta release preflight GitHub Actions workflow，改为复用 `pnpm beta:evidence:download`，不再重复维护 artifact download shell 逻辑。
 - 新增手动 Beta Release Gate Evidence workflow，用于下载必需 evidence artifacts、生成公开 release notes、运行 strict beta release gate，并上传 `beta-release-gate.json`。
+- 新增 `pnpm beta:secrets:check`，用于检查必需 beta GitHub secret 名称和可选本地 secret env 是否存在，且不打印 secret 值。
 - 新增 `pnpm beta:version:prepare`，用于在 strict beta release gate 前 dry-run 或写入一致的 workspace package version。
 - 新增双语 beta readiness 指南：`docs/BETA_READINESS.md`。
 - 将官网从施工说明/工程状态页升级为面向商户的正式产品官网首页。

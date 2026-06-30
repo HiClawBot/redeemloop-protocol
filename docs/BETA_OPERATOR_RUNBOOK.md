@@ -44,13 +44,10 @@ In GitHub:
 Confirm with:
 
 ```bash
-pnpm beta:release:preflight -- \
-  --manifest evidence/beta-evidence.manifest.json \
-  --github \
-  --repo RedeemLoopProtocol/redeemloop-protocol
+pnpm beta:secrets:check -- --repo RedeemLoopProtocol/redeemloop-protocol
 ```
 
-Expected result: `github.secret.REDEEMLOOP_COMMERCE_CERTIFICATION_API_KEY` passes. Funded EVM, WooCommerce, and release-note checks may still fail until later steps.
+Expected result: `github.secret.REDEEMLOOP_COMMERCE_CERTIFICATION_API_KEY` passes. Use the full beta release preflight after the funded EVM and WooCommerce evidence workflow run IDs exist.
 
 ### Step 2: Run the Funded EVM Payment
 
@@ -250,13 +247,10 @@ Only continue if the strict gate passes.
 确认命令：
 
 ```bash
-pnpm beta:release:preflight -- \
-  --manifest evidence/beta-evidence.manifest.json \
-  --github \
-  --repo RedeemLoopProtocol/redeemloop-protocol
+pnpm beta:secrets:check -- --repo RedeemLoopProtocol/redeemloop-protocol
 ```
 
-期望结果：`github.secret.REDEEMLOOP_COMMERCE_CERTIFICATION_API_KEY` 通过。后续 funded EVM、WooCommerce 和 release-note 检查在证据补齐前仍可能失败。
+期望结果：`github.secret.REDEEMLOOP_COMMERCE_CERTIFICATION_API_KEY` 通过。等 funded EVM 和 WooCommerce evidence workflow run IDs 就位后，再运行完整 beta release preflight。
 
 ### 第 2 步：执行 Funded EVM 支付
 

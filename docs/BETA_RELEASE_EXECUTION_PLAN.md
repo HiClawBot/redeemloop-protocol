@@ -8,7 +8,7 @@ For the step-by-step GitHub UI and command sequence, use [Beta Operator Runbook]
 
 ### Current Distance
 
-As of v0.10.25, the codebase has the release tooling needed for a public beta, but the beta cannot be claimed as production-certified yet.
+As of v0.10.31, the codebase has the release tooling needed for a public beta, but the beta cannot be claimed as production-certified yet.
 
 The remaining distance is narrow and evidence-bound:
 
@@ -19,7 +19,7 @@ The remaining distance is narrow and evidence-bound:
 
 The release gate is intentionally still failing until those artifacts exist.
 
-The latest local preflight on July 1, 2026, after restoring the missing local manifest with `pnpm beta:evidence:init -- --missing-only`, returned `5 pass`, `1 warn`, and `6 fail` when both GitHub secret and secret-env checks were enabled. The passing checks cover manifest loading, compose smoke evidence, production-readiness evidence, repository selection, and the `REDEEMLOOP_EVM_RPC_URLS` secret. The failures are the expected blockers: missing funded EVM evidence, missing WooCommerce evidence, missing beta release notes, missing commerce certification secret in GitHub, missing local injected commerce secret, and the aggregate evidence validator failure caused by those missing inputs.
+The latest local preflight on July 1, 2026 returned `5 pass`, `1 warn`, and `5 fail` with GitHub repository secret checks enabled. The passing checks cover manifest loading, compose smoke evidence, production-readiness evidence, repository selection, and the `REDEEMLOOP_EVM_RPC_URLS` secret. The failures are the expected blockers: missing funded EVM evidence, missing WooCommerce evidence, missing beta release notes, missing commerce certification secret in GitHub, and the aggregate evidence validator failure caused by those missing inputs.
 
 ### Already Ready
 
@@ -66,7 +66,7 @@ Shopify live support is optional for the first beta. Bitcoin Rune, Fractal, insc
 1. Configure the remaining release secret.
    - Set `REDEEMLOOP_COMMERCE_CERTIFICATION_API_KEY` in the GitHub repository.
    - Use a merchant-scoped RedeemLoop API key for the certification deployment.
-   - Re-run the beta release preflight and confirm the secret check passes.
+   - Run `pnpm beta:secrets:check -- --repo RedeemLoopProtocol/redeemloop-protocol` and confirm the secret check passes.
 
 2. Run the funded EVM voucher payment.
    - Use the hosted payment page, React pay button, widget, or local certification console.
@@ -114,7 +114,7 @@ Shopify live support is optional for the first beta. Bitcoin Rune, Fractal, insc
 | Stage | Gap | Construction Task | Done When |
 |-------|-----|-------------------|-----------|
 | 0 | Release claim discipline | Lock the first beta scope to EVM + WooCommerce only | Public docs avoid uncertified Shopify/Rune/Fractal/NFT production claims |
-| 1 | Missing commerce secret | Add `REDEEMLOOP_COMMERCE_CERTIFICATION_API_KEY` in GitHub Actions secrets | Preflight secret check passes |
+| 1 | Missing commerce secret | Add `REDEEMLOOP_COMMERCE_CERTIFICATION_API_KEY` in GitHub Actions secrets | `pnpm beta:secrets:check` passes |
 | 2 | Missing funded EVM evidence | Execute one real ERC-20 voucher transfer and run the EVM certification workflow | `evidence/evm-wallet-certification.json` passes validation |
 | 3 | Missing WooCommerce evidence | Mark one safe WooCommerce test order paid through RedeemLoop and run the commerce workflow | `evidence/woocommerce-certification.json` passes validation and is not dry-run |
 | 4 | Missing public release notes | Generate the public-safe bilingual summary from validated private evidence | `evidence/RELEASE_BETA.md` exists, is bilingual, and is redacted |
@@ -153,7 +153,7 @@ The first beta must not claim:
 
 ### 当前距离
 
-截至 v0.10.25，代码库已经具备公开 beta 所需的发布工具链，但还不能声明为 production-certified beta。
+截至 v0.10.31，代码库已经具备公开 beta 所需的发布工具链，但还不能声明为 production-certified beta。
 
 剩余距离很窄，主要是证据缺口：
 
@@ -164,7 +164,7 @@ The first beta must not claim:
 
 Release gate 现在仍然失败，这是有意设计；只有真实 artifact 就位后才应通过。
 
-2026-07-01 在使用 `pnpm beta:evidence:init -- --missing-only` 恢复缺失的本地 manifest 后，最新本地 preflight 结果为：在同时启用 GitHub secret 和 secret-env 检查时，`5 pass`、`1 warn`、`6 fail`。已通过项包括 manifest 加载、compose smoke evidence、production-readiness evidence、仓库选择以及 `REDEEMLOOP_EVM_RPC_URLS` secret。失败项是预期阻断：缺 funded EVM evidence、缺 WooCommerce evidence、缺 beta release notes、GitHub 中缺 commerce certification secret、本地未注入 commerce secret，以及由这些缺失输入导致的 evidence validator 汇总失败。
+2026-07-01 最新本地 preflight 结果为：启用 GitHub repository secret 检查时，`5 pass`、`1 warn`、`5 fail`。已通过项包括 manifest 加载、compose smoke evidence、production-readiness evidence、仓库选择以及 `REDEEMLOOP_EVM_RPC_URLS` secret。失败项是预期阻断：缺 funded EVM evidence、缺 WooCommerce evidence、缺 beta release notes、GitHub 中缺 commerce certification secret，以及由这些缺失输入导致的 evidence validator 汇总失败。
 
 ### 已经具备
 
@@ -211,7 +211,7 @@ Release gate 现在仍然失败，这是有意设计；只有真实 artifact 就
 1. 配置剩余发布 secret。
    - 在 GitHub 仓库中设置 `REDEEMLOOP_COMMERCE_CERTIFICATION_API_KEY`。
    - 使用认证部署中的 merchant-scoped RedeemLoop API key。
-   - 重新运行 beta release preflight，确认 secret check 通过。
+   - 运行 `pnpm beta:secrets:check -- --repo RedeemLoopProtocol/redeemloop-protocol`，确认 secret check 通过。
 
 2. 执行 funded EVM 提货券支付。
    - 使用 hosted payment page、React pay button、widget，或本地 certification console。
@@ -259,7 +259,7 @@ Release gate 现在仍然失败，这是有意设计；只有真实 artifact 就
 | 阶段 | 缺口 | 施工任务 | 完成标准 |
 |------|------|----------|----------|
 | 0 | 发布声明口径 | 首个 beta 范围锁定为 EVM + WooCommerce | 公开文档不声明未认证的 Shopify/Rune/Fractal/NFT production support |
-| 1 | 缺 commerce secret | 在 GitHub Actions secrets 中添加 `REDEEMLOOP_COMMERCE_CERTIFICATION_API_KEY` | Preflight secret check 通过 |
+| 1 | 缺 commerce secret | 在 GitHub Actions secrets 中添加 `REDEEMLOOP_COMMERCE_CERTIFICATION_API_KEY` | `pnpm beta:secrets:check` 通过 |
 | 2 | 缺 funded EVM evidence | 执行一笔真实 ERC-20 提货券转账，并运行 EVM certification workflow | `evidence/evm-wallet-certification.json` 通过校验 |
 | 3 | 缺 WooCommerce evidence | 通过 RedeemLoop 把一个安全 WooCommerce 测试订单标记为 paid，并运行 commerce workflow | `evidence/woocommerce-certification.json` 通过校验，且不是 dry-run |
 | 4 | 缺公开 release notes | 用已校验私有 evidence 生成公开安全的双语 summary | `evidence/RELEASE_BETA.md` 存在、双语、且已脱敏 |
