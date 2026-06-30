@@ -132,6 +132,26 @@ Shopify certification is optional unless the beta release claims Shopify live su
 
 The required EVM and WooCommerce artifacts must describe the same payment. The beta evidence validator compares PaymentIntent ID, chain ID, transaction hash, ERC-20 voucher token, receiver, and raw amount across the two artifacts before release notes can be generated.
 
+### Certification Run Plan
+
+Before dispatching the funded EVM and WooCommerce workflows, copy the placeholder input file to the ignored `evidence/` directory and replace every value with the real certification fields:
+
+```bash
+mkdir -p evidence
+cp docs/examples/beta-certification-inputs.example.json evidence/private-certification-inputs.json
+pnpm beta:certification:plan -- --input evidence/private-certification-inputs.json
+```
+
+The planner is read-only. It does not send transactions, call commerce APIs, read secrets, or dispatch workflows. It validates field formats and checks that the planned EVM and WooCommerce workflow inputs describe the same PaymentIntent, chain ID, transaction hash, voucher token, receiver, and raw amount.
+
+Use `--commands` only in a private terminal when you are ready to run GitHub Actions, because the generated `gh workflow run` commands contain full transaction, wallet, store, and order metadata:
+
+```bash
+pnpm beta:certification:plan -- \
+  --input evidence/private-certification-inputs.json \
+  --commands
+```
+
 ### Release Preflight
 
 Use the release preflight while replacing evidence placeholders. It summarizes which artifacts are ready, which required artifacts still block publication, and the next operator actions:
@@ -355,6 +375,26 @@ Production-certified beta 声明所需证据：
 除非 beta release 声明 Shopify live support，否则 Shopify certification 是可选项。
 
 必需的 EVM artifact 和 WooCommerce artifact 必须描述同一笔支付。Beta evidence validator 会在生成 release notes 前，对比两个 artifact 中的 PaymentIntent ID、chain ID、transaction hash、ERC-20 voucher token、receiver 和 raw amount。
+
+### Certification Run Plan
+
+触发 funded EVM 和 WooCommerce workflows 前，先把占位输入文件复制到被 Git 忽略的 `evidence/` 目录，并把所有字段替换为真实认证字段：
+
+```bash
+mkdir -p evidence
+cp docs/examples/beta-certification-inputs.example.json evidence/private-certification-inputs.json
+pnpm beta:certification:plan -- --input evidence/private-certification-inputs.json
+```
+
+Planner 是只读工具。它不发交易、不调用 commerce API、不读取 secret，也不触发 workflow。它只校验字段格式，并检查 planned EVM 和 WooCommerce workflow inputs 是否描述同一个 PaymentIntent、chain ID、transaction hash、voucher token、receiver 和 raw amount。
+
+只有在私有终端中准备运行 GitHub Actions 时，才使用 `--commands`；生成的 `gh workflow run` 命令会包含完整交易、钱包、店铺和订单元数据：
+
+```bash
+pnpm beta:certification:plan -- \
+  --input evidence/private-certification-inputs.json \
+  --commands
+```
 
 ### Release Preflight
 

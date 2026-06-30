@@ -1,0 +1,27 @@
+{
+  "repo": "RedeemLoopProtocol/redeemloop-protocol",
+  "evm": {
+    "chain_id": 137,
+    "wallet_name": "MetaMask",
+    "wallet_version": "11.0.0",
+    "intent_id": "pi_beta_example",
+    "tx_hash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+    "from": "0x1111111111111111111111111111111111111111",
+    "to": "0x2222222222222222222222222222222222222222",
+    "contract": "0x3333333333333333333333333333333333333333",
+    "amount": "100000000",
+    "min_confirmations": 1
+  },
+  "woocommerce": {
+    "api_base_url": "https://api.example.com",
+    "store_url": "https://store.example.com",
+    "order_id": "1001",
+    "intent_id": "pi_beta_example",
+    "chain_id": 137,
+    "merchant_id": "merchant_cafe",
+    "voucher_token": "0x3333333333333333333333333333333333333333",
+    "amount": "100000000",
+    "receiver": "0x2222222222222222222222222222222222222222",
+    "tx_hash": "0x1111111111111111111111111111111111111111111111111111111111111111"
+  }
+}

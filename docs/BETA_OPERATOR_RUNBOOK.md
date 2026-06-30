@@ -67,6 +67,22 @@ Record these fields immediately:
 
 Do not continue if the payment was simulated, reverted, sent to the wrong vault, sent with the wrong token, or paid with the wrong amount.
 
+Prepare the private workflow input file and validate that the EVM and WooCommerce runs will use the same settlement identity:
+
+```bash
+mkdir -p evidence
+cp docs/examples/beta-certification-inputs.example.json evidence/private-certification-inputs.json
+pnpm beta:certification:plan -- --input evidence/private-certification-inputs.json
+```
+
+When the plan passes, print copyable GitHub CLI dispatch commands in a private terminal:
+
+```bash
+pnpm beta:certification:plan -- \
+  --input evidence/private-certification-inputs.json \
+  --commands
+```
+
 ### Step 3: Generate EVM Evidence
 
 In GitHub:
@@ -269,6 +285,22 @@ pnpm beta:secrets:check -- --repo RedeemLoopProtocol/redeemloop-protocol
 - `raw_amount`
 
 如果支付是模拟、reverted、转到错误 vault、使用错误 token，或 amount 不一致，不要继续发布流程。
+
+准备私有 workflow input 文件，并校验 EVM 与 WooCommerce runs 将使用同一组 settlement identity：
+
+```bash
+mkdir -p evidence
+cp docs/examples/beta-certification-inputs.example.json evidence/private-certification-inputs.json
+pnpm beta:certification:plan -- --input evidence/private-certification-inputs.json
+```
+
+Plan 通过后，在私有终端中输出可复制的 GitHub CLI dispatch 命令：
+
+```bash
+pnpm beta:certification:plan -- \
+  --input evidence/private-certification-inputs.json \
+  --commands
+```
 
 ### 第 3 步：生成 EVM Evidence
 
